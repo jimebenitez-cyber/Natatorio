@@ -1,0 +1,10 @@
+# Dependencias (Nunca subir)
+node_modules/
+/web-natatorio/node_modules/
+
+# Variables de entorno (Contraseñas)
+.env
+
+# Archivos de sistema y logs
+.DS_Store
+npm-debug.log
