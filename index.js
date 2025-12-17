@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const sql = require('mssql');
+const cron = require('node-cron'); // <--- NUEVA LIBRERÍA (El reloj)
 
 const app = express();
 
@@ -23,12 +24,11 @@ const dbConfig = {
 
 // --- RUTAS (ENDPOINTS) ---
 
-// 1. Guardar Alumno (CORREGIDO: Ahora lee 'gmail')
+// 1. Guardar Alumno
 app.post('/api/alumnos', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         
-        // A. VERIFICAR DUPLICADO
         const check = await pool.request()
             .input('dni', sql.VarChar, req.body.dni)
             .query('SELECT id FROM Alumnos WHERE dni = @dni');
@@ -37,13 +37,12 @@ app.post('/api/alumnos', async (req, res) => {
             return res.status(400).json({ message: '⚠️ Ese DNI ya está registrado en el sistema.' });
         }
 
-        // B. GUARDAR (Aquí estaba el error, ahora lee req.body.gmail)
         await pool.request()
             .input('dni', sql.VarChar, req.body.dni)
             .input('nombre', sql.VarChar, req.body.nombre)
             .input('apellido', sql.VarChar, req.body.apellido)
             .input('telefono', sql.VarChar, req.body.celular)
-            .input('email', sql.VarChar, req.body.gmail) // <--- ¡ARREGLADO!
+            .input('email', sql.VarChar, req.body.gmail)
             .query('INSERT INTO Alumnos (dni, nombre, apellido, telefono, email) VALUES (@dni, @nombre, @apellido, @telefono, @email)');
         
         res.status(201).json({ message: 'Alumno guardado correctamente' });
@@ -187,22 +186,49 @@ app.get('/api/horarios-disponibles', async (req, res) => {
     }
 });
 
-// 7. Guardar Asistencia
+// 7. Guardar Asistencia (CON CONTROL DE DUPLICADOS DE TURNO)
+// 7. Guardar Asistencia (MODIFICADO PARA ACEPTAR FECHA MANUAL)
 app.post('/api/asistencias', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
+        
+        // Obtenemos la fecha que viene del React. 
+        // Si por alguna razón no viene, usamos la fecha actual como respaldo.
+        const fechaRegistro = req.body.fecha || new Date(); 
+
+        // 1. Verifica duplicados usando la fecha ELEGIDA (@fecha), no la de hoy (GETDATE)
+        const check = await pool.request()
+            .input('dni', sql.VarChar, req.body.dni)
+            .input('dia', sql.VarChar, req.body.dia)
+            .input('horario', sql.VarChar, req.body.horario)
+            .input('fecha', sql.VarChar, fechaRegistro) // <--- Pasamos la fecha
+            .query(`
+                SELECT id FROM Asistencias 
+                WHERE alumno_dni = @dni 
+                AND dia = @dia 
+                AND horario = @horario 
+                AND CAST(fecha_registro AS DATE) = CAST(@fecha AS DATE)
+            `);
+            
+        if (check.recordset.length > 0) {
+            return res.status(400).json({ message: '⚠️ Este alumno ya está anotado en esa fecha.' });
+        }
+
+        // 2. Insertamos especificando la columna fecha_registro
         await pool.request()
             .input('dni', sql.VarChar, req.body.dni)
             .input('dia', sql.VarChar, req.body.dia)
             .input('horario', sql.VarChar, req.body.horario)
-            .query('INSERT INTO Asistencias (alumno_dni, dia, horario) VALUES (@dni, @dia, @horario)');
+            .input('fecha', sql.VarChar, fechaRegistro) // <--- Pasamos la fecha
+            .query('INSERT INTO Asistencias (alumno_dni, dia, horario, fecha_registro) VALUES (@dni, @dia, @horario, @fecha)');
+            
         res.status(201).json({ message: 'Asistencia guardada' });
     } catch (error) {
-        res.status(500).send('Error al guardar asistencia');
+        console.error(error);
+        res.status(500).json({ message: 'Error al guardar asistencia' });
     }
 });
-
-// 8. Listado Asistencia
+// 8. Listado Asistencia (CORREGIDO: Ahora incluye 'a.id')
 app.get('/api/asistencias/listado', async (req, res) => {
     const { dia, horario } = req.query; 
     try {
@@ -210,20 +236,24 @@ app.get('/api/asistencias/listado', async (req, res) => {
         const result = await pool.request()
             .input('dia', sql.VarChar, dia)
             .input('horario', sql.VarChar, horario)
+            // ↓↓↓ AQUÍ ESTÁ LA CLAVE: a.id ↓↓↓
             .query(`
-                SELECT a.fecha_registro, al.nombre, al.apellido, al.dni
+                SELECT a.id, a.fecha_registro, a.dia, a.horario, al.nombre, al.apellido, al.dni
                 FROM Asistencias a
                 INNER JOIN Alumnos al ON a.alumno_dni = al.dni
-                WHERE a.dia = @dia AND a.horario = @horario
+                WHERE a.dia = @dia 
+                AND a.horario = @horario
+                AND a.fecha_registro >= CAST(DATEADD(day, -6, GETDATE()) AS DATE)
                 ORDER BY a.fecha_registro DESC
             `);
         res.json(result.recordset);
     } catch (error) {
+        console.error(error);
         res.status(500).send('Error al obtener listado');
     }
 });
 
-// 9. Actualizar Alumno (CORREGIDO: También lee 'gmail')
+// 9. Actualizar Alumno
 app.put('/api/alumnos/:id', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
@@ -233,17 +263,48 @@ app.put('/api/alumnos/:id', async (req, res) => {
             .input('nombre', sql.VarChar, req.body.nombre)
             .input('apellido', sql.VarChar, req.body.apellido)
             .input('telefono', sql.VarChar, req.body.celular)
-            .input('email', sql.VarChar, req.body.gmail) // <--- ¡ARREGLADO!
+            .input('email', sql.VarChar, req.body.gmail)
             .query('UPDATE Alumnos SET dni=@dni, nombre=@nombre, apellido=@apellido, telefono=@telefono, email=@email WHERE id=@id');
         res.json({ message: 'Alumno actualizado' });
     } catch (error) {
         res.status(500).send('Error al actualizar');
     }
 });
+// 10. NUEVO: Historial personal de un alumno
+app.get('/api/asistencias/historial/:dni', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request()
+            .input('dni', sql.VarChar, req.params.dni)
+            .query(`
+                SELECT fecha_registro, dia, horario 
+                FROM Asistencias 
+                WHERE alumno_dni = @dni 
+                ORDER BY fecha_registro DESC
+            `);
+        res.json(result.recordset);
+    } catch (error) {
+        res.status(500).send('Error al obtener historial');
+    }
+});
+
+// 11. BORRAR UNA ASISTENCIA ESPECÍFICA
+app.delete('/api/asistencias/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query('DELETE FROM Asistencias WHERE id = @id');
+        res.json({ message: 'Asistencia eliminada' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al eliminar' });
+    }
+});
 
 // --- INICIAR SERVIDOR ---
 const PORT = 5000;
 app.listen(PORT, async () => {
-    console.log(`🚀 SERVIDOR LISTO - CORREO ARREGLADO`);
+    console.log(`🚀 SERVIDOR LISTO - LIMPIEZA AUTOMÁTICA ACTIVADA`);
     try { await sql.connect(dbConfig); console.log('✅ BD Conectada'); } catch (err) { console.error('❌ Error BD:', err); }
 });
