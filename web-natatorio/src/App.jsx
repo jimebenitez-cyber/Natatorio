@@ -193,6 +193,7 @@ export default function App() {
           if(res.ok) { setListaAsistencia(await res.json()); setBusquedaRealizada(true); }
       } catch (error) { setMensaje('Error al cargar lista'); setTimeout(() => setMensaje(''), 3000); }
   };
+
   const eliminarAsistencia = async (idAsistencia) => {
       if(!window.confirm('¿Seguro que quieres quitar a esta persona de la lista?')) return;
 
@@ -241,7 +242,7 @@ export default function App() {
 
         {view === 'main' && (
           <div className="grid-menu">
-            <button className="btn-menu" onClick={() => setView('menuAgregar')}><UserPlus size={36} color="var(--primary)"/><span>Registrar Nuevo</span></button>
+            <button className="btn-menu" onClick={() => setView('menuAgregar')}><UserPlus size={36} color="var(--primary)"/><span>Registrar</span></button>
             <button className="btn-menu" onClick={() => setView('menuEditar')}><Edit size={36} color="#7c3aed"/><span>Editar Datos</span></button>
             <button className="btn-menu" onClick={() => { setView('ingreso'); setBusquedaDni(''); }}><CheckCircle size={36} color="#059669"/><span>Registrar Ingreso</span></button>
             <button className="btn-menu" onClick={() => setView('menuReportes')}><FileText size={36} color="#64748b"/><span>Reportes</span></button>
@@ -322,7 +323,7 @@ export default function App() {
                             <button onClick={()=>{const n=[...formProfesor.horarios]; n.splice(i,1); setFormProfesor({...formProfesor, horarios:n})}} style={{border:'none', background:'rgba(239, 68, 68, 0.2)', color:'#ef4444', borderRadius:'8px', cursor:'pointer', padding:'0 15px'}}><Trash2 size={20}/></button>
                         </div>
                     ))}
-                    <button onClick={()=>setFormProfesor({...formProfesor, horarios:[...formProfesor.horarios, {dia:'', horario:''}]})} style={{border:'1px dashed var(--border)', background:'transparent', color:'var(--text-muted)', padding:'10px', borderRadius:'8px', cursor:'pointer', width:'100%'}}>+ Agregar Horario</button>
+                    <button onClick={()=>setFormProfesor({...formProfesor, horarios:[...formProfesor.horarios, {dia:'', horario:''}]})} style={{border:'1px dashed var(--border)', background:'transparent', color:'white', padding:'10px', borderRadius:'8px', cursor:'pointer', width:'100%'}}>+ Agregar Horario</button>
                 </div>
                 <button onClick={handleGuardarProfesor} className="btn-primary">Guardar</button>
             </div>
@@ -373,7 +374,7 @@ export default function App() {
                                 value={turno.horario} 
                                 onChange={e=>setTurno({...turno, horario:e.target.value})} 
                                 disabled={!turno.dia} 
-                                style={{flex:1, marginBottom:0}}
+                                style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}
                             >
                                 <option value="">Horario...</option>
                                 {turno.dia ? getHorasPorDia(turno.dia).map(h=><option key={h} value={h}>{h}</option>) : null}
@@ -381,7 +382,7 @@ export default function App() {
                         </div>
                         
                         {/* Aviso si no hay día válido */}
-                        {fechaIngreso && !turno.dia && <p style={{color:'#ef4444', fontSize:'0.9rem', marginTop:'5px'}}>* No hay turnos disponibles para esta fecha o es Domingo.</p>}
+                        {fechaIngreso && !turno.dia && <p style={{color:'#ef4444', fontSize:'0.9rem', marginTop:'5px'}}>* No hay turnos disponibles para esta fecha .</p>}
                         
                         <button onClick={registrarAsistencia} disabled={!turno.dia || !turno.horario} className="btn-primary" style={{background:'#059669', border:'none', opacity: (!turno.dia || !turno.horario) ? 0.5 : 1}}>Confirmar Acceso</button>
                     </div>
@@ -417,7 +418,10 @@ export default function App() {
                                 <tbody>
                                     {historialPersonal.map((h, i) => (
                                         <tr key={i}>
-                                            <td>{new Date(h.fecha_registro).toLocaleDateString()}</td>
+                                            <td style={{fontWeight:'600'}}>
+                                            {h.fecha_registro.split('T')[0].split('-').reverse().join('/')}
+                                            </td>
+
                                             <td style={{fontWeight:'bold', color:'var(--primary)'}}>{h.dia} {h.horario}</td>
                                         </tr>
                                     ))}

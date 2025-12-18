@@ -278,7 +278,9 @@ app.get('/api/asistencias/historial/:dni', async (req, res) => {
         const result = await pool.request()
             .input('dni', sql.VarChar, req.params.dni)
             .query(`
-                SELECT fecha_registro, dia, horario 
+                SELECT 
+                    fecha_registro,
+                    dia, horario 
                 FROM Asistencias 
                 WHERE alumno_dni = @dni 
                 ORDER BY fecha_registro DESC
@@ -302,6 +304,7 @@ app.delete('/api/asistencias/:id', async (req, res) => {
         res.status(500).json({ message: 'Error al eliminar' });
     }
 });
+
 
 // --- INICIAR SERVIDOR ---
 const PORT = 5000;
