@@ -19,6 +19,7 @@ export default function App() {
 
   // Estados
   const [editarFecha, setEditarFecha] = useState(false);
+
   const [formAlumno, setFormAlumno] = useState({ id: null, dni: '', nombre: '', apellido: '', celular: '', gmail: '' });
   const [formProfesor, setFormProfesor] = useState({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
   
@@ -130,6 +131,12 @@ const eliminarProfesor = async () => {
 
 
   const handleGuardarAlumno = async () => {
+    //VALIDACION DEL DNI
+    if (!formAlumno.dni || formAlumno.dni.trim() === "") {
+        setMensaje('⚠️ El DNI es obligatorio para registrar al alumno.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
     const esEdicion = !!formAlumno.id;
     try {
         const url = esEdicion ? `http://localhost:5000/api/alumnos/${formAlumno.id}` : 'http://localhost:5000/api/alumnos';
@@ -158,6 +165,12 @@ const eliminarProfesor = async () => {
   };
 
   const handleGuardarProfesor = async () => {
+    // VALIDACION DEL DNI
+    if (!formProfesor.dni || formProfesor.dni.trim() === "") {
+        setMensaje('⚠️ El DNI es obligatorio para registrar al profesor.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
     const esEdicion = !!formProfesor.id;
     try {
       const url = esEdicion ? `http://localhost:5000/api/profesores/${formProfesor.id}` : 'http://localhost:5000/api/profesores';
