@@ -1,3 +1,4 @@
+//PROBANDO
 import React, { useState, useEffect } from 'react';
 import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText } from 'lucide-react';
 import './App.css'; 
@@ -17,6 +18,7 @@ export default function App() {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   // Estados
+  const [editarFecha, setEditarFecha] = useState(false);
   const [formAlumno, setFormAlumno] = useState({ id: null, dni: '', nombre: '', apellido: '', celular: '', gmail: '' });
   const [formProfesor, setFormProfesor] = useState({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
   
@@ -38,7 +40,7 @@ export default function App() {
   const [horariosBD, setHorariosBD] = useState([]);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
 
-  const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado','Domingo'];
   const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
 
   useEffect(() => {
@@ -68,7 +70,8 @@ export default function App() {
 
         if (abreEseDia) {
             // Si abre, seleccionamos el día automáticamente y reseteamos la hora
-            setTurno(prev => ({ ...prev, dia: nombreDia, horario: '' }));
+            setTurno(prev => 
+                ({ ...prev, dia: nombreDia, horario: '' }));
         } else {
             // Si es Domingo o un día que no abren
             setTurno({ dia: '', horario: '' });
@@ -79,6 +82,53 @@ export default function App() {
   }, [fechaIngreso, view, horariosBD]); // Se ejecuta cada vez que cambias la fecha
 
   // --- FUNCIONES API ---
+  const eliminarAlumno = async () => {
+  if (!window.confirm('¿Seguro que deseas eliminar este alumno?')) return;
+
+  try {
+    const res = await fetch(`http://localhost:5000/api/alumnos/${formAlumno.id}`, {
+      method: 'DELETE'
+    });
+
+    if (res.ok) {
+      setMensaje('🗑️ Alumno eliminado correctamente');
+      setFormAlumno({ id:null, dni:'', nombre:'', apellido:'', celular:'', gmail:'' });
+      setTimeout(() => {
+        setMensaje('');
+        setView('main');
+      }, 1500);
+    } else {
+      setMensaje('Error al eliminar alumno');
+    }
+  } catch {
+    setMensaje('Error de conexión');
+  }
+};
+
+const eliminarProfesor = async () => {
+  if (!window.confirm('¿Seguro que deseas eliminar este profesor?')) return;
+
+  try {
+    const res = await fetch(`http://localhost:5000/api/profesores/${formProfesor.id}`, {
+      method: 'DELETE'
+    });
+
+    if (res.ok) {
+      setMensaje('🗑️ Profesor eliminado correctamente');
+      setFormProfesor({ id:null, nombre:'', apellido:'', dni:'', telefono:'', especialidad:'', horarios:[{dia:'', horario:''}] });
+      setTimeout(() => {
+        setMensaje('');
+        setView('main');
+      }, 1500);
+    } else {
+      setMensaje('Error al eliminar profesor');
+    }
+  } catch {
+    setMensaje('Error de conexión');
+  }
+};
+
+
   const handleGuardarAlumno = async () => {
     const esEdicion = !!formAlumno.id;
     try {
@@ -244,7 +294,7 @@ export default function App() {
           <div className="grid-menu">
             <button className="btn-menu" onClick={() => setView('menuAgregar')}><UserPlus size={36} color="var(--primary)"/><span>Registrar</span></button>
             <button className="btn-menu" onClick={() => setView('menuEditar')}><Edit size={36} color="#7c3aed"/><span>Editar Datos</span></button>
-            <button className="btn-menu" onClick={() => { setView('ingreso'); setBusquedaDni(''); }}><CheckCircle size={36} color="#059669"/><span>Registrar Ingreso</span></button>
+            <button className="btn-menu" onClick={() => { setView('ingreso'); setBusquedaDni(''); setSocioEncontrado(null);setTurno({ dia:'', horario:'' });setMensaje('');setFechaIngreso(new Date().toISOString().split('T')[0]); }}><CheckCircle size={36} color="#059669"/><span>Registrar Ingreso</span></button>
             <button className="btn-menu" onClick={() => setView('menuReportes')}><FileText size={36} color="#64748b"/><span>Reportes</span></button>
           </div>
         )}
@@ -292,7 +342,29 @@ export default function App() {
                 <label>DNI</label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})}/>
                 <label>Celular</label><input value={formAlumno.celular} onChange={e=>setFormAlumno({...formAlumno, celular:e.target.value})}/>
                 <label>Email</label><input value={formAlumno.gmail} onChange={e=>setFormAlumno({...formAlumno, gmail:e.target.value})}/>
-                <button onClick={handleGuardarAlumno} className="btn-primary"><Save size={20} style={{marginRight:'5px'}}/> {formAlumno.id ? 'Guardar Cambios' : 'Registrar'}</button>
+                <button onClick={handleGuardarAlumno} className="btn-primary"><Save size={20}/> {formAlumno.id ? 'Guardar Cambios' : 'Registrar'}</button>
+                
+                
+                {view === 'formAlumno' && formAlumno.dni && (
+                <button 
+                    onClick={eliminarAlumno}
+                    style={{
+                    marginTop:'15px',
+                    background:'rgba(239,68,68,0.15)',
+                    color:'#ef4444',
+                    border:'none',
+                    padding:'15px',
+                    borderRadius:'12px',
+                    cursor:'pointer',
+                    width:'100%',
+                    fontWeight:'bold'
+                    }}
+                >
+                    <Trash2 size={18}/> Eliminar Alumno
+                </button>
+                )}
+
+
             </div>
         )}
 
@@ -326,6 +398,28 @@ export default function App() {
                     <button onClick={()=>setFormProfesor({...formProfesor, horarios:[...formProfesor.horarios, {dia:'', horario:''}]})} style={{border:'1px dashed var(--border)', background:'transparent', color:'white', padding:'10px', borderRadius:'8px', cursor:'pointer', width:'100%'}}>+ Agregar Horario</button>
                 </div>
                 <button onClick={handleGuardarProfesor} className="btn-primary">Guardar</button>
+               
+                {view === 'formProfesor' && formProfesor.dni && (
+                <button 
+                    onClick={eliminarProfesor}
+                    style={{
+                    marginTop:'15px',
+                    background:'rgba(239,68,68,0.15)',
+                    color:'#ef4444',
+                    border:'none',
+                    padding:'15px',
+                    borderRadius:'12px',
+                    cursor:'pointer',
+                    width:'100%',
+                    fontWeight:'bold'
+                    }}
+                >
+                    <Trash2 size={18}/> Eliminar Profesor
+                </button>
+                )}
+
+
+
             </div>
         )}
         
