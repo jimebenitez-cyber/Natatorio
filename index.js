@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const sql = require('mssql');
 const cron = require('node-cron'); // <--- NUEVA LIBRERÍA (El reloj)
+import cors from 'cors';
 
 const app = express();
 
@@ -307,8 +308,14 @@ app.delete('/api/asistencias/:id', async (req, res) => {
 
 
 // --- INICIAR SERVIDOR ---
-const PORT = 5000;
+/*const PORT = 5000;
 app.listen(PORT, async () => {
     console.log(`🚀 SERVIDOR LISTO - LIMPIEZA AUTOMÁTICA ACTIVADA`);
     try { await sql.connect(dbConfig); console.log('✅ BD Conectada'); } catch (err) { console.error('❌ Error BD:', err); }
-});
+});*/
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT,()=>console.log(`Servidor corriendo en puerto ${PORT}`));
+
+/*esto es para que el frond y el back se entiendan*/ 
+app.use(cors()); // permite que cualquier frontend haga requests
