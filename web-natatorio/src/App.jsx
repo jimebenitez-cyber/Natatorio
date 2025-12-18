@@ -83,6 +83,22 @@ export default function App() {
   }, [fechaIngreso, view, horariosBD]); // Se ejecuta cada vez que cambias la fecha
 
   // --- FUNCIONES API ---
+  const asignarDniTemporal = async (tipo) => {
+    try {
+        const res = await fetch('http://localhost:5000/api/siguiente-dni-temporal');
+        const data = await res.json();
+        
+        if (tipo === 'alumno') {
+            setFormAlumno({ ...formAlumno, dni: data.siguiente.toString() });
+        } else {
+            setFormProfesor({ ...formProfesor, dni: data.siguiente.toString() });
+        }
+        setMensaje(`🔢 Número temporal asignado: ${data.siguiente}`);
+        setTimeout(() => setMensaje(''), 3000);
+    } catch (error) {
+        setMensaje('❌ Error al conectar con el servidor');
+    }
+};
   const eliminarAlumno = async () => {
   if (!window.confirm('¿Seguro que deseas eliminar este alumno?')) return;
 
@@ -352,7 +368,9 @@ const eliminarProfesor = async () => {
                 <h2 style={{marginBottom:'20px'}}>{formAlumno.id ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
                 <label>Nombre</label><input value={formAlumno.nombre} onChange={e=>setFormAlumno({...formAlumno, nombre:e.target.value})}/>
                 <label>Apellido</label><input value={formAlumno.apellido} onChange={e=>setFormAlumno({...formAlumno, apellido:e.target.value})}/>
-                <label>DNI</label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})}/>
+                <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})} required placeholder='Campo obligatorio'/>
+                <button type="button" onClick={() => asignarDniTemporal('alumno')}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)',textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem',marginTop: '-12px', marginBottom: '15px', display: 'block', textAlign: 'left'}}>No tengo DNI</button>
                 <label>Celular</label><input value={formAlumno.celular} onChange={e=>setFormAlumno({...formAlumno, celular:e.target.value})}/>
                 <label>Email</label><input value={formAlumno.gmail} onChange={e=>setFormAlumno({...formAlumno, gmail:e.target.value})}/>
                 <button onClick={handleGuardarAlumno} className="btn-primary"><Save size={20}/> {formAlumno.id ? 'Guardar Cambios' : 'Registrar'}</button>
@@ -396,7 +414,9 @@ const eliminarProfesor = async () => {
                 <h2>{formProfesor.id ? 'Editar Profesor' : 'Nuevo Profesor'}</h2>
                 <label>Nombre</label><input value={formProfesor.nombre} onChange={e=>setFormProfesor({...formProfesor, nombre:e.target.value})}/>
                 <label>Apellido</label><input value={formProfesor.apellido} onChange={e=>setFormProfesor({...formProfesor, apellido:e.target.value})}/>
-                <label>DNI</label><input value={formProfesor.dni} onChange={e=>setFormProfesor({...formProfesor, dni:e.target.value})}/>
+                <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formProfesor.dni} onChange={e=>setFormProfesor({...formProfesor, dni:e.target.value})}required placeholder="Campo obligatorio"/>
+                <button type="button" onClick={() => asignarDniTemporal('alumno')}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)',textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem',marginTop: '-12px', marginBottom: '15px', display: 'block', textAlign: 'left'}}>No tengo DNI</button>
                 <label>Teléfono</label><input value={formProfesor.telefono} onChange={e=>setFormProfesor({...formProfesor, telefono:e.target.value})}/>
                 <label>Especialidad</label><input value={formProfesor.especialidad} onChange={e=>setFormProfesor({...formProfesor, especialidad:e.target.value})}/>
                 <div style={{background:'rgba(255,255,255,0.05)', padding:'20px', borderRadius:'15px', marginTop:'20px', border:'1px solid var(--border)'}}>
