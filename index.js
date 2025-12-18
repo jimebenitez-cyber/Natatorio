@@ -1,4 +1,3 @@
-/**hola */
 const express = require('express');
 const cors = require('cors');
 const sql = require('mssql');
@@ -187,8 +186,7 @@ app.get('/api/horarios-disponibles', async (req, res) => {
     }
 });
 
-// 7. Guardar Asistencia (CON CONTROL DE DUPLICADOS DE TURNO)
-// 7. Guardar Asistencia (MODIFICADO PARA ACEPTAR FECHA MANUAL)
+// 7. Guardar Asistencia (CON CONTROL DE DUPLICADOS DE TURNO Y ACEPTAR FECHA MANUAL)
 app.post('/api/asistencias', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
@@ -302,6 +300,49 @@ app.delete('/api/asistencias/:id', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al eliminar' });
+    }
+});
+// 12. ELIMINAR ALUMNO
+app.delete('/api/alumnos/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+
+        // Borra primero asistencias del alumno
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                DELETE FROM Asistencias 
+                WHERE alumno_dni = (SELECT dni FROM Alumnos WHERE id = @id)
+            `);
+
+        // Borra alumno
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query('DELETE FROM Alumnos WHERE id = @id');
+
+        res.json({ message: 'Alumno eliminado' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al eliminar alumno' });
+    }
+});
+// 13. ELIMINAR PROFESOR
+app.delete('/api/profesores/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query('DELETE FROM Horarios_Profesores WHERE profesor_id = @id');
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query('DELETE FROM Profesores WHERE id = @id');
+
+        res.json({ message: 'Profesor eliminado' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al eliminar profesor' });
     }
 });
 
