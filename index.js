@@ -1,14 +1,13 @@
-/**hola */
 const express = require('express');
+console.log('🔥 ESTE ES EL INDEX.JS CORRECTO 🔥');
+
 const cors = require('cors');
 const sql = require('mssql');
 const cron = require('node-cron'); // <--- NUEVA LIBRERÍA (El reloj)
 
 const app = express();
-
-// Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); 
 
 // --- CONFIGURACIÓN DE LA BASE DE DATOS ---
 const dbConfig = {
@@ -28,6 +27,10 @@ const dbConfig = {
 // 1. Guardar Alumno
 app.post('/api/alumnos', async (req, res) => {
     try {
+        // Validar que el DNI venga en el body
+        if (!req.body.dni) {
+            return res.status(400).json({ message: 'El campo DNI es obligatorio.' });
+        }
         const pool = await sql.connect(dbConfig);
         
         const check = await pool.request()
@@ -75,6 +78,9 @@ app.get('/api/alumnos/:dni', async (req, res) => {
 // 3. Guardar Profesor
 app.post('/api/profesores', async (req, res) => {
     try {
+        if (!req.body.dni) {
+            return res.status(400).json({ message: 'El campo DNI es obligatorio.' });
+        }
         const pool = await sql.connect(dbConfig);
 
         const check = await pool.request()
@@ -187,8 +193,7 @@ app.get('/api/horarios-disponibles', async (req, res) => {
     }
 });
 
-// 7. Guardar Asistencia (CON CONTROL DE DUPLICADOS DE TURNO)
-// 7. Guardar Asistencia (MODIFICADO PARA ACEPTAR FECHA MANUAL)
+// 7. Guardar Asistencia (CON CONTROL DE DUPLICADOS DE TURNO Y ACEPTAR FECHA MANUAL)
 app.post('/api/asistencias', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
@@ -304,11 +309,102 @@ app.delete('/api/asistencias/:id', async (req, res) => {
         res.status(500).json({ message: 'Error al eliminar' });
     }
 });
+// 12. ELIMINAR ALUMNO
+app.delete('/api/alumnos/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+
+        // Borra primero asistencias del alumno
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                DELETE FROM Asistencias 
+                WHERE alumno_dni = (SELECT dni FROM Alumnos WHERE id = @id)
+            `);
+
+        // Borra alumno
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query('DELETE FROM Alumnos WHERE id = @id');
+
+        res.json({ message: 'Alumno eliminado' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al eliminar alumno' });
+    }
+});
+// 13. ELIMINAR PROFESOR
+app.delete('/api/profesores/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query('DELETE FROM Horarios_Profesores WHERE profesor_id = @id');
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query('DELETE FROM Profesores WHERE id = @id');
+
+        res.json({ message: 'Profesor eliminado' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al eliminar profesor' });
+    }
+});
+
+// Endpoint para obtener el siguiente DNI temporal disponible
+app.get('/api/siguiente-dni-temporal', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+
+        let dni = 1;
+        let existe = true;
+
+        while (dni <= 1000000 && existe) {
+            const result = await pool.request()
+                .input('dni', sql.VarChar, dni.toString())
+                .query(`
+                    SELECT 1 AS existe FROM Alumnos WHERE LTRIM(RTRIM(dni)) = @dni
+                    UNION
+                    SELECT 1 AS existe FROM Profesores WHERE LTRIM(RTRIM(dni)) = @dni
+                `);
+
+            existe = result.recordset.length > 0;
+
+            if (existe) {
+                dni++;
+            }
+        }
+
+        if (dni > 1000000) {
+            return res.status(400).json({ message: 'No hay DNIs disponibles' });
+        }
+
+        res.json({ siguiente: dni });
+
+    } catch (error) {
+        console.error('❌ Error generando DNI temporal:', error);
+        res.status(500).json({ message: 'Error al generar DNI temporal' });
+    }
+});
+
+
 
 
 // --- INICIAR SERVIDOR ---
 const PORT = 5000;
+
 app.listen(PORT, async () => {
-    console.log(`🚀 SERVIDOR LISTO - LIMPIEZA AUTOMÁTICA ACTIVADA`);
-    try { await sql.connect(dbConfig); console.log('✅ BD Conectada'); } catch (err) { console.error('❌ Error BD:', err); }
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+    try {
+        await sql.connect(dbConfig);
+        console.log('✅ BD Conectada');
+    } catch (err) {
+        console.error('❌ Error BD:', err);
+    }
 });
+
+
+
+

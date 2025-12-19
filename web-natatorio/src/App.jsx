@@ -86,6 +86,7 @@ export default function App() {
   const asignarDniTemporal = async (tipo) => {
     try {
         const res = await fetch('http://localhost:5000/api/siguiente-dni-temporal');
+       if (!res.ok) throw new Error('Error en el servidor');
         const data = await res.json();
         
         if (tipo === 'alumno') {
@@ -97,6 +98,7 @@ export default function App() {
         setTimeout(() => setMensaje(''), 3000);
     } catch (error) {
         setMensaje('❌ Error al conectar con el servidor');
+        setTimeout(() => setMensaje(''), 3000);
     }
 };
   const eliminarAlumno = async () => {
@@ -414,7 +416,7 @@ const eliminarProfesor = async () => {
                 <h2>{formProfesor.id ? 'Editar Profesor' : 'Nuevo Profesor'}</h2>
                 <label>Nombre</label><input value={formProfesor.nombre} onChange={e=>setFormProfesor({...formProfesor, nombre:e.target.value})}/>
                 <label>Apellido</label><input value={formProfesor.apellido} onChange={e=>setFormProfesor({...formProfesor, apellido:e.target.value})}/>
-                <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formProfesor.dni} onChange={e=>setFormProfesor({...formProfesor, dni:e.target.value})}required placeholder="Campo obligatorio"/>
+                <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})} required placeholder='Campo obligatorio'/>                
                 <button type="button" onClick={() => asignarDniTemporal('alumno')}
                 style={{ background: 'none', border: 'none', color: 'var(--primary)',textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem',marginTop: '-12px', marginBottom: '15px', display: 'block', textAlign: 'left'}}>No tengo DNI</button>
                 <label>Teléfono</label><input value={formProfesor.telefono} onChange={e=>setFormProfesor({...formProfesor, telefono:e.target.value})}/>
