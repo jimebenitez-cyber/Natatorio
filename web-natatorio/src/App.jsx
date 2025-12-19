@@ -1,4 +1,3 @@
-//PROBANDO
 import React, { useState, useEffect } from 'react';
 import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText } from 'lucide-react';
 import './App.css'; 
@@ -18,8 +17,6 @@ export default function App() {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   // Estados
-  const [editarFecha, setEditarFecha] = useState(false);
-
   const [formAlumno, setFormAlumno] = useState({ id: null, dni: '', nombre: '', apellido: '', celular: '', gmail: '' });
   const [formProfesor, setFormProfesor] = useState({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
   
@@ -41,7 +38,7 @@ export default function App() {
   const [horariosBD, setHorariosBD] = useState([]);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
 
-  const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado','Domingo'];
+  const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
 
   useEffect(() => {
@@ -71,8 +68,7 @@ export default function App() {
 
         if (abreEseDia) {
             // Si abre, seleccionamos el día automáticamente y reseteamos la hora
-            setTurno(prev => 
-                ({ ...prev, dia: nombreDia, horario: '' }));
+            setTurno(prev => ({ ...prev, dia: nombreDia, horario: '' }));
         } else {
             // Si es Domingo o un día que no abren
             setTurno({ dia: '', horario: '' });
@@ -83,6 +79,7 @@ export default function App() {
   }, [fechaIngreso, view, horariosBD]); // Se ejecuta cada vez que cambias la fecha
 
   // --- FUNCIONES API ---
+<<<<<<< HEAD
   const asignarDniTemporal = async (tipo) => {
     try {
         const res = await fetch('http://localhost:5000/api/siguiente-dni-temporal');
@@ -148,13 +145,9 @@ const eliminarProfesor = async () => {
 };
 
 
+=======
+>>>>>>> 0aa41ef14efd6f20d459b6e9cff22ef000d1c850
   const handleGuardarAlumno = async () => {
-    //VALIDACION DEL DNI
-    if (!formAlumno.dni || formAlumno.dni.trim() === "") {
-        setMensaje('⚠️ El DNI es obligatorio para registrar al alumno.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
     const esEdicion = !!formAlumno.id;
     try {
         const url = esEdicion ? `http://localhost:5000/api/alumnos/${formAlumno.id}` : 'http://localhost:5000/api/alumnos';
@@ -178,17 +171,11 @@ const eliminarProfesor = async () => {
               setFormAlumno({ id: data.id, dni: data.dni, nombre: data.nombre, apellido: data.apellido, celular: data.telefono, gmail: data.email });
               setView('formAlumno');
               setBusquedaDni(''); 
-          } else { setMensaje('Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️ Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
   const handleGuardarProfesor = async () => {
-    // VALIDACION DEL DNI
-    if (!formProfesor.dni || formProfesor.dni.trim() === "") {
-        setMensaje('⚠️ El DNI es obligatorio para registrar al profesor.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
     const esEdicion = !!formProfesor.id;
     try {
       const url = esEdicion ? `http://localhost:5000/api/profesores/${formProfesor.id}` : 'http://localhost:5000/api/profesores';
@@ -212,7 +199,7 @@ const eliminarProfesor = async () => {
               setFormProfesor({ ...data, horarios: data.horarios.length ? data.horarios : [{dia:'', horario:''}] });
               setView('formProfesor');
               setBusquedaDni('');
-          } else { setMensaje('Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
@@ -300,7 +287,7 @@ const eliminarProfesor = async () => {
       if(!busquedaDni) return;
       try {
           const resAlumno = await fetch(`http://localhost:5000/api/alumnos/${busquedaDni}`);
-          if(!resAlumno.ok) { setMensaje('Alumno no encontrado'); setTimeout(() => setMensaje(''), 3000); return; }
+          if(!resAlumno.ok) { setMensaje('⚠️ Alumno no encontrado'); setTimeout(() => setMensaje(''), 3000); return; }
           setAlumnoHistorial(await resAlumno.json());
           const resHistorial = await fetch(`http://localhost:5000/api/asistencias/historial/${busquedaDni}`);
           if(resHistorial.ok) { setHistorialPersonal(await resHistorial.json()); }
@@ -325,7 +312,7 @@ const eliminarProfesor = async () => {
           <div className="grid-menu">
             <button className="btn-menu" onClick={() => setView('menuAgregar')}><UserPlus size={36} color="var(--primary)"/><span>Registrar</span></button>
             <button className="btn-menu" onClick={() => setView('menuEditar')}><Edit size={36} color="#7c3aed"/><span>Editar Datos</span></button>
-            <button className="btn-menu" onClick={() => { setView('ingreso'); setBusquedaDni(''); setSocioEncontrado(null);setTurno({ dia:'', horario:'' });setMensaje('');setFechaIngreso(new Date().toISOString().split('T')[0]); }}><CheckCircle size={36} color="#059669"/><span>Registrar Ingreso</span></button>
+            <button className="btn-menu" onClick={() => { setView('ingreso'); setBusquedaDni(''); }}><CheckCircle size={36} color="#059669"/><span>Registrar Ingreso</span></button>
             <button className="btn-menu" onClick={() => setView('menuReportes')}><FileText size={36} color="#64748b"/><span>Reportes</span></button>
           </div>
         )}
@@ -370,34 +357,10 @@ const eliminarProfesor = async () => {
                 <h2 style={{marginBottom:'20px'}}>{formAlumno.id ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
                 <label>Nombre</label><input value={formAlumno.nombre} onChange={e=>setFormAlumno({...formAlumno, nombre:e.target.value})}/>
                 <label>Apellido</label><input value={formAlumno.apellido} onChange={e=>setFormAlumno({...formAlumno, apellido:e.target.value})}/>
-                <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})} required placeholder='Campo obligatorio'/>
-                <button type="button" onClick={() => asignarDniTemporal('alumno')}
-                style={{ background: 'none', border: 'none', color: 'var(--primary)',textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem',marginTop: '-12px', marginBottom: '15px', display: 'block', textAlign: 'left'}}>No tengo DNI</button>
+                <label>DNI</label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})}/>
                 <label>Celular</label><input value={formAlumno.celular} onChange={e=>setFormAlumno({...formAlumno, celular:e.target.value})}/>
                 <label>Email</label><input value={formAlumno.gmail} onChange={e=>setFormAlumno({...formAlumno, gmail:e.target.value})}/>
-                <button onClick={handleGuardarAlumno} className="btn-primary"><Save size={20}/> {formAlumno.id ? 'Guardar Cambios' : 'Registrar'}</button>
-                
-                
-                {view === 'formAlumno' && formAlumno.dni && (
-                <button 
-                    onClick={eliminarAlumno}
-                    style={{
-                    marginTop:'15px',
-                    background:'rgba(239,68,68,0.15)',
-                    color:'#ef4444',
-                    border:'none',
-                    padding:'15px',
-                    borderRadius:'12px',
-                    cursor:'pointer',
-                    width:'100%',
-                    fontWeight:'bold'
-                    }}
-                >
-                    <Trash2 size={18}/> Eliminar Alumno
-                </button>
-                )}
-
-
+                <button onClick={handleGuardarAlumno} className="btn-primary"><Save size={20} style={{marginRight:'5px'}}/> {formAlumno.id ? 'Guardar Cambios' : 'Registrar'}</button>
             </div>
         )}
 
@@ -416,9 +379,13 @@ const eliminarProfesor = async () => {
                 <h2>{formProfesor.id ? 'Editar Profesor' : 'Nuevo Profesor'}</h2>
                 <label>Nombre</label><input value={formProfesor.nombre} onChange={e=>setFormProfesor({...formProfesor, nombre:e.target.value})}/>
                 <label>Apellido</label><input value={formProfesor.apellido} onChange={e=>setFormProfesor({...formProfesor, apellido:e.target.value})}/>
+<<<<<<< HEAD
                 <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})} required placeholder='Campo obligatorio'/>                
                 <button type="button" onClick={() => asignarDniTemporal('alumno')}
                 style={{ background: 'none', border: 'none', color: 'var(--primary)',textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem',marginTop: '-12px', marginBottom: '15px', display: 'block', textAlign: 'left'}}>No tengo DNI</button>
+=======
+                <label>DNI</label><input value={formProfesor.dni} onChange={e=>setFormProfesor({...formProfesor, dni:e.target.value})}/>
+>>>>>>> 0aa41ef14efd6f20d459b6e9cff22ef000d1c850
                 <label>Teléfono</label><input value={formProfesor.telefono} onChange={e=>setFormProfesor({...formProfesor, telefono:e.target.value})}/>
                 <label>Especialidad</label><input value={formProfesor.especialidad} onChange={e=>setFormProfesor({...formProfesor, especialidad:e.target.value})}/>
                 <div style={{background:'rgba(255,255,255,0.05)', padding:'20px', borderRadius:'15px', marginTop:'20px', border:'1px solid var(--border)'}}>
@@ -433,28 +400,6 @@ const eliminarProfesor = async () => {
                     <button onClick={()=>setFormProfesor({...formProfesor, horarios:[...formProfesor.horarios, {dia:'', horario:''}]})} style={{border:'1px dashed var(--border)', background:'transparent', color:'white', padding:'10px', borderRadius:'8px', cursor:'pointer', width:'100%'}}>+ Agregar Horario</button>
                 </div>
                 <button onClick={handleGuardarProfesor} className="btn-primary">Guardar</button>
-               
-                {view === 'formProfesor' && formProfesor.dni && (
-                <button 
-                    onClick={eliminarProfesor}
-                    style={{
-                    marginTop:'15px',
-                    background:'rgba(239,68,68,0.15)',
-                    color:'#ef4444',
-                    border:'none',
-                    padding:'15px',
-                    borderRadius:'12px',
-                    cursor:'pointer',
-                    width:'100%',
-                    fontWeight:'bold'
-                    }}
-                >
-                    <Trash2 size={18}/> Eliminar Profesor
-                </button>
-                )}
-
-
-
             </div>
         )}
         
