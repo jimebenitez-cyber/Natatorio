@@ -178,7 +178,7 @@ const eliminarProfesor = async () => {
               setFormAlumno({ id: data.id, dni: data.dni, nombre: data.nombre, apellido: data.apellido, celular: data.telefono, gmail: data.email });
               setView('formAlumno');
               setBusquedaDni(''); 
-          } else { setMensaje('Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️ Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
@@ -232,7 +232,7 @@ const eliminarProfesor = async () => {
                 setTurno(prev => ({ ...prev, dia: diaNombre, horario: '' }));
             }
             setTimeout(() => setMensaje(''), 1500);
-        } else { setMensaje('DNI no encontrado.'); setSocioEncontrado(null); setTimeout(() => setMensaje(''), 3000); }
+        } else { setMensaje('⚠️ DNI no encontrado.'); setSocioEncontrado(null); setTimeout(() => setMensaje(''), 3000); }
     } catch(e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
