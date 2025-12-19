@@ -178,7 +178,7 @@ const eliminarProfesor = async () => {
               setFormAlumno({ id: data.id, dni: data.dni, nombre: data.nombre, apellido: data.apellido, celular: data.telefono, gmail: data.email });
               setView('formAlumno');
               setBusquedaDni(''); 
-          } else { setMensaje('Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️ Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
@@ -300,7 +300,7 @@ const eliminarProfesor = async () => {
       if(!busquedaDni) return;
       try {
           const resAlumno = await fetch(`http://localhost:5000/api/alumnos/${busquedaDni}`);
-          if(!resAlumno.ok) { setMensaje('Alumno no encontrado'); setTimeout(() => setMensaje(''), 3000); return; }
+          if(!resAlumno.ok) { setMensaje('⚠️ Alumno no encontrado'); setTimeout(() => setMensaje(''), 3000); return; }
           setAlumnoHistorial(await resAlumno.json());
           const resHistorial = await fetch(`http://localhost:5000/api/asistencias/historial/${busquedaDni}`);
           if(resHistorial.ok) { setHistorialPersonal(await resHistorial.json()); }
@@ -365,9 +365,17 @@ const eliminarProfesor = async () => {
         )}
 
         {view === 'formAlumno' && (
-            <div>
-                <button onClick={() => setView('menuAgregar')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
-                <h2 style={{marginBottom:'20px'}}>{formAlumno.id ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
+    <div>
+        {/* CORRECCIÓN: Vuelve al menú correspondiente según si es edición o nuevo */}
+        <button 
+            onClick={() => setView(formAlumno.id ? 'menuEditar' : 'menuAgregar')} 
+            className="btn-volver"
+        >
+            <ArrowLeft size={20}/> Volver
+        </button>
+        
+        <h2 style={{marginBottom:'20px'}}>{formAlumno.id ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
+        {/* ... resto del código igual ... */}
                 <label>Nombre</label><input value={formAlumno.nombre} onChange={e=>setFormAlumno({...formAlumno, nombre:e.target.value})}/>
                 <label>Apellido</label><input value={formAlumno.apellido} onChange={e=>setFormAlumno({...formAlumno, apellido:e.target.value})}/>
                 <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})} required placeholder='Campo obligatorio'/>
@@ -411,8 +419,15 @@ const eliminarProfesor = async () => {
         )}
 
         {view === 'formProfesor' && (
-            <div>
-                <button onClick={() => setView('menuAgregar')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
+    <div>
+        {/* CORRECCIÓN: Vuelve al menú correspondiente según si es edición o nuevo */}
+        <button 
+            onClick={() => setView(formProfesor.id ? 'menuEditar' : 'menuAgregar')} 
+            className="btn-volver"
+        >
+                 <ArrowLeft size={20}/> Volver
+                </button>
+        
                 <h2>{formProfesor.id ? 'Editar Profesor' : 'Nuevo Profesor'}</h2>
                 <label>Nombre</label><input value={formProfesor.nombre} onChange={e=>setFormProfesor({...formProfesor, nombre:e.target.value})}/>
                 <label>Apellido</label><input value={formProfesor.apellido} onChange={e=>setFormProfesor({...formProfesor, apellido:e.target.value})}/>
