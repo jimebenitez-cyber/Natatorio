@@ -131,11 +131,7 @@ export default function App() {
               setFormProfesor({ ...data, horarios: data.horarios.length ? data.horarios : [{dia:'', horario:''}] });
               setView('formProfesor');
               setBusquedaDni('');
-<<<<<<< HEAD
           } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
-=======
-          } else { setMensaje('⚠️Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
->>>>>>> 0aa41ef14efd6f20d459b6e9cff22ef000d1c850
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
