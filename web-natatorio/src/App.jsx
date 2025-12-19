@@ -79,7 +79,6 @@ export default function App() {
   }, [fechaIngreso, view, horariosBD]); // Se ejecuta cada vez que cambias la fecha
 
   // --- FUNCIONES API ---
-<<<<<<< HEAD
   const asignarDniTemporal = async (tipo) => {
     try {
         const res = await fetch('http://localhost:5000/api/siguiente-dni-temporal');
@@ -383,9 +382,6 @@ const eliminarProfesor = async () => {
                 <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})} required placeholder='Campo obligatorio'/>                
                 <button type="button" onClick={() => asignarDniTemporal('alumno')}
                 style={{ background: 'none', border: 'none', color: 'var(--primary)',textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem',marginTop: '-12px', marginBottom: '15px', display: 'block', textAlign: 'left'}}>No tengo DNI</button>
-=======
-                <label>DNI</label><input value={formProfesor.dni} onChange={e=>setFormProfesor({...formProfesor, dni:e.target.value})}/>
->>>>>>> 0aa41ef14efd6f20d459b6e9cff22ef000d1c850
                 <label>Teléfono</label><input value={formProfesor.telefono} onChange={e=>setFormProfesor({...formProfesor, telefono:e.target.value})}/>
                 <label>Especialidad</label><input value={formProfesor.especialidad} onChange={e=>setFormProfesor({...formProfesor, especialidad:e.target.value})}/>
                 <div style={{background:'rgba(255,255,255,0.05)', padding:'20px', borderRadius:'15px', marginTop:'20px', border:'1px solid var(--border)'}}>
