@@ -176,7 +176,7 @@ const eliminarProfesor = async () => {
               setFormAlumno({ id: data.id, dni: data.dni, nombre: data.nombre, apellido: data.apellido, celular: data.telefono, gmail: data.email });
               setView('formAlumno');
               setBusquedaDni(''); 
-          } else { setMensaje('Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️ Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
@@ -210,7 +210,7 @@ const eliminarProfesor = async () => {
               setFormProfesor({ ...data, horarios: data.horarios.length ? data.horarios : [{dia:'', horario:''}] });
               setView('formProfesor');
               setBusquedaDni('');
-          } else { setMensaje('Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
@@ -298,7 +298,7 @@ const eliminarProfesor = async () => {
       if(!busquedaDni) return;
       try {
           const resAlumno = await fetch(`http://localhost:5000/api/alumnos/${busquedaDni}`);
-          if(!resAlumno.ok) { setMensaje('Alumno no encontrado'); setTimeout(() => setMensaje(''), 3000); return; }
+          if(!resAlumno.ok) { setMensaje('⚠️ Alumno no encontrado'); setTimeout(() => setMensaje(''), 3000); return; }
           setAlumnoHistorial(await resAlumno.json());
           const resHistorial = await fetch(`http://localhost:5000/api/asistencias/historial/${busquedaDni}`);
           if(resHistorial.ok) { setHistorialPersonal(await resHistorial.json()); }

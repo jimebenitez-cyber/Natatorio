@@ -126,7 +126,7 @@ app.get('/api/profesores/:dni', async (req, res) => {
             .query('SELECT * FROM Profesores WHERE dni = @dni');
 
         if (resultProfe.recordset.length === 0) {
-            return res.status(404).json({ message: 'Profesor no encontrado' });
+            return res.status(404).json({ message: '⚠️Profesor no encontrado' });
         }
         const profesor = resultProfe.recordset[0];
         const resultHorarios = await pool.request()
