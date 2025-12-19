@@ -118,7 +118,7 @@ app.post('/api/profesores', async (req, res) => {
 });
 
 // 4. Buscar Profesor
-app.get('/api/profesores/:dni', async (req, res) => {
+app.get('/api/profesores/:dni', );async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const resultProfe = await pool.request()
@@ -139,7 +139,7 @@ app.get('/api/profesores/:dni', async (req, res) => {
         console.error(error);
         res.status(500).send('Error al buscar profesor');
     }
-});
+}
 
 // 5. Editar Profesor
 app.put('/api/profesores/:id', async (req, res) => {
