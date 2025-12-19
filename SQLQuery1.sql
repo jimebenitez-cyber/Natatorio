@@ -157,3 +157,5 @@ select * from Profesores
 
 ALTER TABLE Alumnos
 ADD CONSTRAINT UQ_Alumnos_DNI UNIQUE (dni);
+
+

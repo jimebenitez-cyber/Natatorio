@@ -155,6 +155,18 @@ const eliminarProfesor = async () => {
         setTimeout(() => setMensaje(''), 3000);
         return;
     }
+    //VALIDACION DEL NOMBRE
+    if (!formAlumno.nombre || formAlumno.nombre.trim() === "") {
+        setMensaje('⚠️ El Nombre es obligatorio para registrar al alumno.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
+    //VALIDACION DEL APELLIDO
+    if (!formAlumno.apellido || formAlumno.apellido.trim() === "") {
+        setMensaje('⚠️ El Apellido es obligatorio para registrar al alumno.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
     const esEdicion = !!formAlumno.id;
     try {
         const url = esEdicion ? `http://localhost:5000/api/alumnos/${formAlumno.id}` : 'http://localhost:5000/api/alumnos';
@@ -186,6 +198,18 @@ const eliminarProfesor = async () => {
     // VALIDACION DEL DNI
     if (!formProfesor.dni || formProfesor.dni.trim() === "") {
         setMensaje('⚠️ El DNI es obligatorio para registrar al profesor.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
+    //VALIDACION DEL NOMBRE
+    if (!formProfesor.nombre || formProfesor.nombre.trim() === "") {
+        setMensaje('⚠️ El Nombre es obligatorio para registrar al profesor.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
+    //VALIDACION DEL APELLIDO
+    if (!formProfesor.apellido || formProfesor.apellido.trim() === "") {
+        setMensaje('⚠️ El Apellido es obligatorio para registrar al profesor.');
         setTimeout(() => setMensaje(''), 3000);
         return;
     }
@@ -367,17 +391,12 @@ const eliminarProfesor = async () => {
         {view === 'formAlumno' && (
     <div>
         {/* CORRECCIÓN: Vuelve al menú correspondiente según si es edición o nuevo */}
-        <button 
-            onClick={() => setView(formAlumno.id ? 'menuEditar' : 'menuAgregar')} 
-            className="btn-volver"
-        >
-            <ArrowLeft size={20}/> Volver
-        </button>
+        <button onClick={() => setView(formAlumno.id ? 'menuEditar' : 'menuAgregar')} className="btn-volver"> <ArrowLeft size={20}/> Volver</button>
         
         <h2 style={{marginBottom:'20px'}}>{formAlumno.id ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
         {/* ... resto del código igual ... */}
-                <label>Nombre</label><input value={formAlumno.nombre} onChange={e=>setFormAlumno({...formAlumno, nombre:e.target.value})}/>
-                <label>Apellido</label><input value={formAlumno.apellido} onChange={e=>setFormAlumno({...formAlumno, apellido:e.target.value})}/>
+                <label>Nombre<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.nombre} onChange={e=>setFormAlumno({...formAlumno, nombre:e.target.value})} required placeholder='Campo obligatorio'/>
+                <label>Apellido<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.apellido} onChange={e=>setFormAlumno({...formAlumno, apellido:e.target.value})} required placeholder='Campo obligatorio'/>
                 <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})} required placeholder='Campo obligatorio'/>
                 <button type="button" onClick={() => asignarDniTemporal('alumno')}
                 style={{ background: 'none', border: 'none', color: 'var(--primary)',textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem',marginTop: '-12px', marginBottom: '15px', display: 'block', textAlign: 'left'}}>No tengo DNI</button>
@@ -421,16 +440,10 @@ const eliminarProfesor = async () => {
         {view === 'formProfesor' && (
     <div>
         {/* CORRECCIÓN: Vuelve al menú correspondiente según si es edición o nuevo */}
-        <button 
-            onClick={() => setView(formProfesor.id ? 'menuEditar' : 'menuAgregar')} 
-            className="btn-volver"
-        >
-                 <ArrowLeft size={20}/> Volver
-                </button>
-        
+                <button onClick={() => setView(formProfesor.id ? 'menuEditar' : 'menuAgregar')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
                 <h2>{formProfesor.id ? 'Editar Profesor' : 'Nuevo Profesor'}</h2>
-                <label>Nombre</label><input value={formProfesor.nombre} onChange={e=>setFormProfesor({...formProfesor, nombre:e.target.value})}/>
-                <label>Apellido</label><input value={formProfesor.apellido} onChange={e=>setFormProfesor({...formProfesor, apellido:e.target.value})}/>
+                <label>Nombre<span style={{color: '#ef4444'}}>*</span></label><input value={formProfesor.nombre} onChange={e=>setFormProfesor({...formProfesor, nombre:e.target.value})} required placeholder='Campo obligatorio'/>
+                <label>Apellido<span style={{color: '#ef4444'}}>*</span></label><input value={formProfesor.apellido} onChange={e=>setFormProfesor({...formProfesor, apellido:e.target.value})} required placeholder='Campo obligatorio'/>
                 <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formProfesor.dni} onChange={e=>setFormProfesor({...formProfesor, dni:e.target.value})}required placeholder="Campo obligatorio"/>
                 <button type="button" onClick={() => asignarDniTemporal('profesor')}
                 style={{ background: 'none', border: 'none', color: 'var(--primary)',textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem',marginTop: '-12px', marginBottom: '15px', display: 'block', textAlign: 'left'}}>No tengo DNI</button>
@@ -450,23 +463,9 @@ const eliminarProfesor = async () => {
                 <button onClick={handleGuardarProfesor} className="btn-primary">Guardar</button>
                
                 {view === 'formProfesor' && formProfesor.dni && (
-                <button 
-                    onClick={eliminarProfesor}
-                    style={{
-                    marginTop:'15px',
-                    background:'rgba(239,68,68,0.15)',
-                    color:'#ef4444',
-                    border:'none',
-                    padding:'15px',
-                    borderRadius:'12px',
-                    cursor:'pointer',
-                    width:'100%',
-                    fontWeight:'bold'
-                    }}
-                >
-                    <Trash2 size={18}/> Eliminar Profesor
-                </button>
-                )}
+                <button onClick={eliminarProfesor} 
+                style={{marginTop:'15px',background:'rgba(239,68,68,0.15)',color:'#ef4444',border:'none', padding:'15px',borderRadius:'12px',cursor:'pointer',width:'100%',fontWeight:'bold'}}>
+                    <Trash2 size={18}/> Eliminar Profesor</button>)}
 
 
 
