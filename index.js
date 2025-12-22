@@ -1,6 +1,4 @@
 const express = require('express');
-console.log('🔥 ESTE ES EL INDEX.JS CORRECTO 🔥');
-
 const cors = require('cors');
 const sql = require('mssql');
 const cron = require('node-cron'); // <--- NUEVA LIBRERÍA (El reloj)
@@ -27,10 +25,6 @@ const dbConfig = {
 // 1. Guardar Alumno
 app.post('/api/alumnos', async (req, res) => {
     try {
-        // Validar que el DNI venga en el body
-        if (!req.body.dni) {
-            return res.status(400).json({ message: 'El campo DNI es obligatorio.' });
-        }
         const pool = await sql.connect(dbConfig);
         
         const check = await pool.request()
@@ -78,9 +72,7 @@ app.get('/api/alumnos/:dni', async (req, res) => {
 // 3. Guardar Profesor
 app.post('/api/profesores', async (req, res) => {
     try {
-        if (!req.body.dni) {
-            return res.status(400).json({ message: 'El campo DNI es obligatorio.' });
-        }
+        
         const pool = await sql.connect(dbConfig);
 
         const check = await pool.request()
@@ -124,21 +116,17 @@ app.post('/api/profesores', async (req, res) => {
 });
 
 // 4. Buscar Profesor
-// Ruta 4: Buscar Profesor (en index.js)
 app.get('/api/profesores/:dni', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const resultProfe = await pool.request()
-            .input('dni', sql.VarChar, req.params.dni) // Si el DNI es número en la BD, usa sql.Int
+            .input('dni', sql.VarChar, req.params.dni)
             .query('SELECT * FROM Profesores WHERE dni = @dni');
 
         if (resultProfe.recordset.length === 0) {
-            // Importante: Mandar el 404 para que el Frontend sepa que no está
-            return res.status(404).json({ message: '⚠️ Profesor no encontrado' });
+            return res.status(404).json({ message: '⚠️Profesor no encontrado' });
         }
-        
         const profesor = resultProfe.recordset[0];
-        // Buscar sus horarios usando el ID del profesor encontrado
         const resultHorarios = await pool.request()
             .input('pid', sql.Int, profesor.id)
             .query('SELECT dia, horario FROM Horarios_Profesores WHERE profesor_id = @pid');
@@ -147,15 +135,27 @@ app.get('/api/profesores/:dni', async (req, res) => {
         res.json(profesor);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: '❌ Error al buscar en la base de datos' });
+        res.status(500).send('Error al buscar profesor');
     }
 });
 
 // 5. Editar Profesor
 app.put('/api/profesores/:id', async (req, res) => {
+    
     try {
         const pool = await sql.connect(dbConfig);
         const profeId = req.params.id;
+        
+        const checkDni = await pool.request()
+            .input('dni', sql.VarChar, req.body.dni)
+            .input('id', sql.Int, profeId)
+            .query(`SELECT id FROM Profesores WHERE dni = @dni AND id <> @id`);
+
+        if (checkDni.recordset.length > 0) {
+            return res.status(400).json({
+                message: '⚠️ Ese DNI ya está asignado a otro profesor.'
+            });
+        }
 
         await pool.request()
             .input('id', sql.Int, profeId)
@@ -263,10 +263,26 @@ app.get('/api/asistencias/listado', async (req, res) => {
     }
 });
 
-// 9. Actualizar Alumno
+// 9. Editar Alumno
 app.put('/api/alumnos/:id', async (req, res) => {
+    
     try {
         const pool = await sql.connect(dbConfig);
+        /*const checkDni = await pool.request()
+            .input('dni', sql.VarChar, req.body.dni)
+            .input('id', sql.Int, AlumnoId)
+            .query(`
+                SELECT id 
+                FROM Alumnos
+                WHERE dni = @dni 
+                AND id <> @id
+            `);
+
+        if (checkDni.recordset.length > 0) {
+            return res.status(400).json({
+                message: '⚠️ Ese DNI ya está asignado a otro alumno.'
+            });
+        }*/
         await pool.request()
             .input('id', sql.Int, req.params.id)
             .input('dni', sql.VarChar, req.body.dni)
