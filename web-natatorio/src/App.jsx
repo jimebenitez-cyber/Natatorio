@@ -233,6 +233,7 @@ export default function App() {
   // --- LÓGICA DE INGRESO / EGRESO MEJORADA ---
   const buscarSocioIngreso = async () => {
     if (!busquedaDni) return;
+    setTurno({ dia: '', horario: '' });
     try {
         // 1. Buscar Datos del Alumno
         const rAlumno = await fetch(`http://localhost:5000/api/alumnos/${busquedaDni}`);
@@ -493,7 +494,7 @@ export default function App() {
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
                 <h2>Control de Acceso</h2>
                 <label>Ingrese DNI del Alumno</label>
-                <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input value={busquedaDni} onChange={e=>setBusquedaDni(e.target.value)} placeholder="Ej: 33444555" style={{marginBottom:0}}/><button onClick={buscarSocioIngreso} className="btn-primary" style={{marginTop:0, width:'auto'}}>Buscar</button></div>
+                <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input value={busquedaDni} onChange={e=>setBusquedaDni(e.target.value)} placeholder="Ej: 33444555" style={{marginBottom:0}} onKeyDown={(e) => e.key === 'Enter' && buscarSocioIngreso()} /><button onClick={buscarSocioIngreso} className="btn-primary" style={{marginTop:0, width:'auto'}}>Buscar</button></div>
                 
                 {socioEncontrado && (
                     <div style={{marginTop:'30px', padding:'30px', background:'rgba(16, 185, 129, 0.1)', borderRadius:'15px', border:'1px solid #059669'}}>
@@ -518,11 +519,28 @@ export default function App() {
                         ) : (
                             // CASO C: NO VINO -> MOSTRAR INGRESO
                             <>
-                                <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Fecha de Asistencia:</label>
-                                <input type="date" value={fechaIngreso} onChange={(e) => setFechaIngreso(e.target.value)} style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #059669', background: 'transparent', color: 'inherit'}}/>
+                               <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>
+            Fecha de Asistencia (Hoy):
+        </label>
+        
+        {/* 👇 ESTE ES EL INPUT QUE CAMBIAMOS 👇 */}
+        <input 
+            type="date" 
+            value={fechaIngreso} 
+            disabled={true} 
+            style={{
+                width: '100%', 
+                padding: '10px', 
+                borderRadius: '8px', 
+                border: '1px solid #059669', 
+                background: 'rgba(0,0,0,0.2)', // Fondo oscurecido
+                color: 'white', 
+                opacity: 0.8,
+                cursor: 'not-allowed' // Icono de prohibido
+            }}
+        />
 
-                                <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label>
-                                <div style={{display:'flex', gap:'15px'}}>
+        <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label> <div style={{display:'flex', gap:'15px'}}>
                                     <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
                                     <select value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
                                         <option value={turno.horario}>{turno.horario || 'Horario...'}</option>
@@ -537,7 +555,7 @@ export default function App() {
             </div>
         )}
 
-        {view === 'buscarHistorial' && (
+       {view === 'buscarHistorial' && (
             <div>
                 <button onClick={() => setView('menuReportes')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
                 <h2>Historial de Asistencia</h2>
@@ -558,16 +576,23 @@ export default function App() {
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Fecha de Asistencia</th>
-                                        <th>Turno</th>
-                                        <th>Salida</th>
+                                        <th>Fecha</th>
+                                        <th>Ingreso</th> {/* Antes decía Turno */}
+                                        <th>Salida</th>  {/* Columna NUEVA */}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {historialPersonal.map((h, i) => (
                                         <tr key={i}>
-                                            <td style={{fontWeight:'600'}}>{h.fecha_registro.split('T')[0].split('-').reverse().join('/')}</td>
-                                            <td style={{fontWeight:'bold', color:'var(--primary)'}}>{h.dia} {h.horario_ingreso}</td>
+                                            <td style={{fontWeight:'600'}}>
+                                                {/* Corrección de fecha para que no reste un día */}
+                                                {h.fecha_registro.split('T')[0].split('-').reverse().join('/')}
+                                            </td>
+                                            {/* CAMBIO: h.horario ahora es h.horario_ingreso */}
+                                            <td style={{fontWeight:'bold', color:'var(--primary)'}}>
+                                                {h.dia} {h.horario_ingreso}
+                                            </td>
+                                            {/* CAMBIO: Nueva columna calculada */}
                                             <td>{getHoraSalida(h.horario_ingreso, h.horario_egreso)}</td>
                                         </tr>
                                     ))}
@@ -583,19 +608,27 @@ export default function App() {
             <div>
                 <button onClick={() => setView('menuReportes')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
                 <h2>Listado de Asistencia</h2>
+                
+                {/* Filtros */}
                 <div style={{display:'flex', gap:'15px', marginTop:'20px', alignItems:'center'}}>
                     <select value={filtroListado.dia} onChange={e=>{setFiltroListado({...filtroListado, dia:e.target.value, horario:''}); setBusquedaRealizada(false);}} style={{marginBottom:0}}><option value="">Día...</option>{getDiasDisponibles().map(d=><option key={d} value={d}>{d}</option>)}</select>
-                    <select value={filtroListado.horario} onChange={e=>{setFiltroListado({...filtroListado, horario:e.target.value}); setBusquedaRealizada(false);}} disabled={!filtroListado.dia} style={{marginBottom:0}}><option value="">Hora...</option>{getHorasPorDia(filtroListado.dia).map(h=><option key={h} value={h}>{h}</option>)}</select>
+                    
+                    <select value={filtroListado.horario} onChange={e=>{setFiltroListado({...filtroListado, horario:e.target.value}); setBusquedaRealizada(false);}} disabled={!filtroListado.dia} style={{marginBottom:0}}>
+                        <option value="">Hora...</option>
+                        {getHorasPorDia(filtroListado.dia).map(h=><option key={h} value={h}>{h}</option>)}
+                    </select>
+                    
                     <button onClick={verListado} className="btn-primary" style={{marginTop:0, width:'auto'}}>Ver</button>
                 </div>
 
+                {/* Tabla */}
                 {listaAsistencia.length > 0 ? (
                     <table>
                         <thead>
                             <tr>
                                 <th>Fecha</th> 
-                                <th>Turno</th>
-                                <th>Salida</th>
+                                <th>Ingreso</th> {/* Antes Turno */}
+                                <th>Salida</th>  {/* Columna NUEVA */}
                                 <th>Nombre</th>
                                 <th>DNI</th>
                                 <th>Acción</th>
@@ -605,14 +638,28 @@ export default function App() {
                             {listaAsistencia.map((a) => (
                                 <tr key={a.id}>
                                     <td>{a.fecha_registro.split('T')[0].split('-').reverse().join('/')}</td>
-                                    <td style={{fontWeight:'bold', color:'var(--primary)'}}>{a.dia} {a.horario_ingreso}</td>
+                                    
+                                    {/* CAMBIO: a.horario ahora es a.horario_ingreso */}
+                                    <td style={{fontWeight:'bold', color:'var(--primary)'}}>
+                                        {a.dia} {a.horario_ingreso}
+                                    </td>
+                                    
+                                    {/* CAMBIO: Nueva columna calculada */}
                                     <td>{getHoraSalida(a.horario_ingreso, a.horario_egreso)}</td>
+                                    
                                     <td>{a.nombre} {a.apellido}</td>
                                     <td>{a.dni}</td>
                                     <td>
                                         <button 
                                             onClick={() => eliminarAsistencia(a.id)} 
-                                            style={{background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer'}}
+                                            style={{
+                                                background: 'rgba(239, 68, 68, 0.15)', 
+                                                color: '#ef4444', 
+                                                border: 'none', 
+                                                padding: '8px', 
+                                                borderRadius: '8px', 
+                                                cursor: 'pointer'
+                                            }}
                                             title="Eliminar de la lista"
                                         >
                                             <Trash2 size={18} />
