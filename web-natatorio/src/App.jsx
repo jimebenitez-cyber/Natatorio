@@ -1,4 +1,3 @@
-//PROBANDO
 import React, { useState, useEffect } from 'react';
 import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText } from 'lucide-react';
 import './App.css'; 
@@ -22,20 +21,19 @@ export default function App() {
 
   // Estados
   const [esEdicionAlumno, setEsEdicionAlumno] = useState(false);
-    const [esEdicionProfesor, setEsEdicionProfesor] = useState(false);
-
-  const [editarFecha, setEditarFecha] = useState(false);
+  const [esEdicionProfesor, setEsEdicionProfesor] = useState(false);
 
   const [formAlumno, setFormAlumno] = useState({ id: null, dni: '', nombre: '', apellido: '', celular: '', gmail: '' });
   const [formProfesor, setFormProfesor] = useState({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
   
   const [busquedaDni, setBusquedaDni] = useState('');
   const [socioEncontrado, setSocioEncontrado] = useState(null);
+  const [asistenciaHoy, setAsistenciaHoy] = useState(null); // Nuevo estado: Guarda info si ya vino hoy
   
   // ESTADO TURNO: dia y horario
   const [turno, setTurno] = useState({ dia: '', horario: '' });
   
-  // ESTADO FECHA: Inicializamos con HOY
+  // ESTADO FECHA: Inicializamos con HOY (YYYY-MM-DD)
   const [fechaIngreso, setFechaIngreso] = useState(new Date().toISOString().split('T')[0]);
 
   // Estados Listado y Historial
@@ -50,6 +48,17 @@ export default function App() {
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado','Domingo'];
   const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
 
+  // Helper para mostrar Salida (Real o Estimada)
+  const getHoraSalida = (ingreso, egreso) => {
+    if (egreso) return egreso; 
+    if (!ingreso) return '-';
+    // Si no hay egreso, calculamos +1 hora
+    const [hh, mm] = ingreso.split(':').map(Number);
+    let nuevoHH = hh + 1;
+    if (nuevoHH >= 24) nuevoHH = 0;
+    return `${nuevoHH.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')} (Est.)`;
+  };
+
   useEffect(() => {
       fetch('http://localhost:5000/api/horarios-disponibles')
           .then(res => res.json()).then(data => setHorariosBD(data))
@@ -57,53 +66,38 @@ export default function App() {
   }, [view]);
 
   const getDiasDisponibles = () => diasSemana.filter(d => [...new Set(horariosBD.map(i => i.dia))].includes(d));
-  // Filtra horarios basándose en el día seleccionado
   const getHorasPorDia = (dia) => horariosBD.filter(i => i.dia === dia).map(i => i.horario).sort();
 
   const obtenerHoraTurno = () => {
-  const ahora = new Date();
-  const hora = ahora.getHours();
-  const minutos = ahora.getMinutes();
-  
-  if(minutos>=45)
-  {
-    hora= (hora +1)%24;
-  }
+    const ahora = new Date();
+    let hora = ahora.getHours();
+    const minutos = ahora.getMinutes();
+    if(minutos >= 45) { hora = (hora + 1) % 24; }
+    return `${hora.toString().padStart(2, '0')}:00`;
+  };
 
-  return `${hora.toString().padStart(2, '0')}:00`;
-
-};
-
-useEffect(() => {
-  if (!turno.dia) return;
-
-  setTurno(prev => ({
-    ...prev,
-    horario: obtenerHoraTurno()
-  }));
-}, [turno.dia]);
+  useEffect(() => {
+    if (!turno.dia) return;
+    setTurno(prev => ({ ...prev, horario: obtenerHoraTurno() }));
+  }, [turno.dia]);
 
 
- useEffect(() => {
-    // Agregamos esta validación para que no calcule nada si no hay alumno en pantalla
-    if (fechaIngreso && view === 'ingreso' && socioEncontrado) {
+  useEffect(() => {
+    // Solo calcula el turno automático si NO estamos en modo "Egreso" (es decir, si no hay asistencia hoy o view no es ingreso)
+    if (fechaIngreso && view === 'ingreso' && socioEncontrado && !asistenciaHoy) {
         
         const [year, month, day] = fechaIngreso.split('-').map(Number);
         const fechaObj = new Date(year, month - 1, day);
-        
         const indexDia = fechaObj.getDay();
         const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
         const nombreDia = nombresDias[indexDia];
-
         const abreEseDia = getDiasDisponibles().includes(nombreDia);
 
         if (abreEseDia) {
             let horarioCalculado = '';
-            
             const horasDisponibles = getHorasPorDia(nombreDia);
             const hoyString = new Date().toISOString().split('T')[0];
             
-            // Si es HOY y hay horarios, buscamos el más cercano
             if (fechaIngreso === hoyString && horasDisponibles.length > 0) {
                 const ahora = new Date();
                 const minutosActuales = (ahora.getHours() * 60) + ahora.getMinutes();
@@ -113,33 +107,25 @@ useEffect(() => {
                     const [h, m] = horaStr.split(':').map(Number);
                     const minutosTurno = (h * 60) + m;
                     const diferencia = Math.abs(minutosTurno - minutosActuales);
-
                     if (diferencia < menorDiferencia) {
                         menorDiferencia = diferencia;
                         horarioCalculado = horaStr;
                     }
                 });
             }
-
-            setTurno(prev => ({ 
-                ...prev, 
-                dia: nombreDia, 
-                horario: horarioCalculado 
-            }));
-
+            setTurno(prev => ({ ...prev, dia: nombreDia, horario: horarioCalculado }));
         } else {
             setTurno({ dia: '', horario: '' });
             setMensaje(`⚠️ El natatorio no abre los ${nombreDia}s`);
         }
     }
-    // IMPORTANTE: Agregamos 'socioEncontrado' aquí abajo
-  }, [fechaIngreso, view, horariosBD, socioEncontrado]);
+  }, [fechaIngreso, view, horariosBD, socioEncontrado, asistenciaHoy]);
 
   // --- FUNCIONES API ---
   const asignarDniTemporal = async (tipo) => {
     try {
         const res = await fetch('http://localhost:5000/api/siguiente-dni-temporal');
-       if (!res.ok) throw new Error('Error en el servidor');
+        if (!res.ok) throw new Error('Error en el servidor');
         const data = await res.json();
         
         if (tipo === 'alumno') {
@@ -153,92 +139,36 @@ useEffect(() => {
         setMensaje('❌ Error al conectar con el servidor');
         setTimeout(() => setMensaje(''), 3000);
     }
-};
+  };
+
   const eliminarAlumno = async () => {
-  if (!window.confirm('¿Seguro que deseas eliminar este alumno?')) return;
+    if (!window.confirm('¿Seguro que deseas eliminar este alumno?')) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/alumnos/${formAlumno.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setMensaje('🗑️ Alumno eliminado correctamente');
+        setFormAlumno({ id:null, dni:'', nombre:'', apellido:'', celular:'', gmail:'' });
+        setTimeout(() => { setMensaje(''); setView('main'); }, 1500);
+      } else { setMensaje('Error al eliminar alumno'); }
+    } catch { setMensaje('Error de conexión'); }
+  };
 
-  try {
-    const res = await fetch(`http://localhost:5000/api/alumnos/${formAlumno.id}`, {
-      method: 'DELETE'
-    });
-
-    if (res.ok) {
-      setMensaje('🗑️ Alumno eliminado correctamente');
-      setFormAlumno({ id:null, dni:'', nombre:'', apellido:'', celular:'', gmail:'' });
-      setTimeout(() => {
-        setMensaje('');
-        setView('main');
-      }, 1500);
-    } else {
-      setMensaje('Error al eliminar alumno');
-    }
-  } catch {
-    setMensaje('Error de conexión');
-  }
-};
-
-const eliminarProfesor = async () => {
-  if (!window.confirm('¿Seguro que deseas eliminar este profesor?')) return;
-
-  try {
-    const res = await fetch(`http://localhost:5000/api/profesores/${formProfesor.id}`, {
-      method: 'DELETE'
-    });
-
-    if (res.ok) {
-      setMensaje('🗑️ Profesor eliminado correctamente');
-      setFormProfesor({ id:null, nombre:'', apellido:'', dni:'', telefono:'', especialidad:'', horarios:[{dia:'', horario:''}] });
-      setTimeout(() => {
-        setMensaje('');
-        setView('main');
-      }, 1500);
-    } else {
-      setMensaje('Error al eliminar profesor');
-    }
-  } catch {
-    setMensaje('Error de conexión');
-  }
-};
-
+  const eliminarProfesor = async () => {
+    if (!window.confirm('¿Seguro que deseas eliminar este profesor?')) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/profesores/${formProfesor.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setMensaje('🗑️ Profesor eliminado correctamente');
+        setFormProfesor({ id:null, nombre:'', apellido:'', dni:'', telefono:'', especialidad:'', horarios:[{dia:'', horario:''}] });
+        setTimeout(() => { setMensaje(''); setView('main'); }, 1500);
+      } else { setMensaje('Error al eliminar profesor'); }
+    } catch { setMensaje('Error de conexión'); }
+  };
 
   const handleGuardarAlumno = async () => {
-    //VALIDACION DEL DNI
-    if (!formAlumno.dni || formAlumno.dni.trim() === "") {
-        setMensaje('⚠️ El DNI es obligatorio para registrar al alumno.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-    // VALIDACIÓN: DNI solo números
-    if (!regexDni.test(formAlumno.dni)) {
-        setMensaje('⚠️ El DNI debe contener solo números.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-    //VALIDACION DEL NOMBRE
-    if (!formAlumno.nombre || formAlumno.nombre.trim() === "") {
-        setMensaje('⚠️ El Nombre es obligatorio para registrar al alumno.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-        // VALIDACIÓN: nombre solo letras
-    if (!regexNombre.test(formAlumno.nombre)) {
-        setMensaje('⚠️ El nombre solo puede contener letras.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-    //VALIDACION DEL APELLIDO
-    if (!formAlumno.apellido || formAlumno.apellido.trim() === "") {
-        setMensaje('⚠️ El Apellido es obligatorio para registrar al alumno.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-    // VALIDACIÓN: apellido solo letras
-    if (!regexNombre.test(formAlumno.apellido)) {
-        setMensaje('⚠️ El apellido solo puede contener letras.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-
+    if (!formAlumno.dni || !regexDni.test(formAlumno.dni)) { setMensaje('⚠️ DNI inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formAlumno.nombre || !regexNombre.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formAlumno.apellido || !regexNombre.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
 
     const esEdicion = !!formAlumno.id;
     try {
@@ -269,42 +199,9 @@ const eliminarProfesor = async () => {
   };
 
   const handleGuardarProfesor = async () => {
-    // VALIDACION DEL DNI
-    if (!formProfesor.dni || formProfesor.dni.trim() === "") {
-        setMensaje('⚠️ El DNI es obligatorio para registrar al profesor.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-    // VALIDACIÓN: DNI solo números
-    if (!regexDni.test(formProfesor.dni)) {
-        setMensaje('⚠️ El DNI debe contener solo números.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-    //VALIDACION DEL NOMBRE
-    if (!formProfesor.nombre || formProfesor.nombre.trim() === "") {
-        setMensaje('⚠️ El Nombre es obligatorio para registrar al profesor.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-    // VALIDACIÓN: nombre solo letras
-    if (!regexNombre.test(formProfesor.nombre)) {
-        setMensaje('⚠️ El nombre solo puede contener letras.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-    //VALIDACION DEL APELLIDO
-    if (!formProfesor.apellido || formProfesor.apellido.trim() === "") {
-        setMensaje('⚠️ El Apellido es obligatorio para registrar al profesor.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
-    // VALIDACIÓN: apellido solo letras
-    if (!regexNombre.test(formProfesor.apellido)) {
-        setMensaje('⚠️ El apellido solo puede contener letras.');
-        setTimeout(() => setMensaje(''), 3000);
-        return;
-    }
+    if (!formProfesor.dni || !regexDni.test(formProfesor.dni)) { setMensaje('⚠️ DNI inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formProfesor.nombre || !regexNombre.test(formProfesor.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    
     const esEdicion = !!formProfesor.id;
     try {
       const url = esEdicion ? `http://localhost:5000/api/profesores/${formProfesor.id}` : 'http://localhost:5000/api/profesores';
@@ -333,25 +230,36 @@ const eliminarProfesor = async () => {
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
- const buscarSocioIngreso = async () => {
+  // --- LÓGICA DE INGRESO / EGRESO MEJORADA ---
+  const buscarSocioIngreso = async () => {
     if (!busquedaDni) return;
     try {
-        const r = await fetch(`http://localhost:5000/api/alumnos/${busquedaDni}`);
-        if(r.ok) {
-            setSocioEncontrado(await r.json());
-            setMensaje('¡Alumno verificado!');
+        // 1. Buscar Datos del Alumno
+        const rAlumno = await fetch(`http://localhost:5000/api/alumnos/${busquedaDni}`);
+        
+        if(rAlumno.ok) {
+            const dataAlumno = await rAlumno.json();
+            setSocioEncontrado(dataAlumno);
             
-            // --- BORRAR O COMENTAR ESTO ---
-            // El useEffect ahora se encarga de definir día y horario
-            // const [y,m,d] = fechaIngreso.split('-');
-            // ... (borrar toda la lógica manual de fechas aquí) ...
-            // setTurno(...) 
-            // ------------------------------
-
-            setTimeout(() => setMensaje(''), 1500);
+            // 2. Buscar si ya tiene asistencia hoy
+            const rEstado = await fetch(`http://localhost:5000/api/asistencias/estado-hoy/${dataAlumno.dni}`);
+            if (rEstado.ok) {
+                const dataEstado = await rEstado.json(); 
+                setAsistenciaHoy(dataEstado); // Guarda el estado (null, o objeto asistencia)
+                
+                if (dataEstado && !dataEstado.horario_egreso) {
+                    setMensaje('⚠️ El alumno ya está ingresado. Puedes registrar su egreso.');
+                } else if (dataEstado && dataEstado.horario_egreso) {
+                    setMensaje('ℹ️ El alumno ya completó su turno hoy.');
+                } else {
+                    setMensaje('¡Alumno verificado!');
+                }
+            }
+            setTimeout(() => setMensaje(''), 2000);
         } else { 
             setMensaje('DNI no encontrado.'); 
             setSocioEncontrado(null); 
+            setAsistenciaHoy(null);
             setTimeout(() => setMensaje(''), 3000); 
         }
     } catch(e) { 
@@ -383,12 +291,44 @@ const eliminarProfesor = async () => {
                   setMensaje(''); 
                   setSocioEncontrado(null); 
                   setBusquedaDni(''); 
+                  setAsistenciaHoy(null);
                   setTurno({dia:'', horario:''}); 
                   setFechaIngreso(new Date().toISOString().split('T')[0]); 
                   setView('main'); 
               }, 2000);
           } else { setMensaje(data.message || 'Error al guardar.'); setTimeout(() => setMensaje(''), 3000); }
       } catch (error) { setMensaje('Error de conexión.'); setTimeout(() => setMensaje(''), 3000); }
+  };
+
+  const registrarEgreso = async () => {
+    if (!asistenciaHoy || !asistenciaHoy.id) return;
+    
+    const ahora = new Date();
+    const horaActual = `${ahora.getHours().toString().padStart(2, '0')}:${ahora.getMinutes().toString().padStart(2, '0')}`;
+
+    try {
+        const res = await fetch(`http://localhost:5000/api/asistencias/egreso/${asistenciaHoy.id}`, {
+            method: 'PUT', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ horario_egreso: horaActual })
+        });
+
+        if(res.ok) {
+            setMensaje(`👋 Salida registrada a las ${horaActual}`);
+            setTimeout(() => { 
+                setMensaje(''); 
+                setSocioEncontrado(null); 
+                setBusquedaDni(''); 
+                setAsistenciaHoy(null);
+                setTurno({dia:'', horario:''}); 
+                setView('main'); 
+            }, 2000);
+        } else {
+            setMensaje('Error al registrar egreso');
+        }
+    } catch (error) {
+        setMensaje('Error de conexión');
+    }
   };
 
   const verListado = async () => {
@@ -401,23 +341,14 @@ const eliminarProfesor = async () => {
 
   const eliminarAsistencia = async (idAsistencia) => {
       if(!window.confirm('¿Seguro que quieres quitar a esta persona de la lista?')) return;
-
       try {
-          const res = await fetch(`http://localhost:5000/api/asistencias/${idAsistencia}`, {
-              method: 'DELETE'
-          });
-
+          const res = await fetch(`http://localhost:5000/api/asistencias/${idAsistencia}`, { method: 'DELETE' });
           if(res.ok) {
               setMensaje('🗑️ Registro eliminado correctamente');
-              // Actualizamos la lista automáticamente quitando el elemento borrado
               setListaAsistencia(listaAsistencia.filter(item => item.id !== idAsistencia));
               setTimeout(() => setMensaje(''), 3000);
-          } else {
-              setMensaje('Error al eliminar');
-          }
-      } catch (error) {
-          setMensaje('Error de conexión');
-      }
+          } else { setMensaje('Error al eliminar'); }
+      } catch (error) { setMensaje('Error de conexión'); }
   };
 
   const buscarHistorialPersonal = async () => {
@@ -449,12 +380,11 @@ const eliminarProfesor = async () => {
           <div className="grid-menu">
             <button className="btn-menu" onClick={() => setView('menuAgregar')}><UserPlus size={36} color="var(--primary)"/><span>Registrar</span></button>
             <button className="btn-menu" onClick={() => setView('menuEditar')}><Edit size={36} color="#7c3aed"/><span>Editar Datos</span></button>
-            <button className="btn-menu" onClick={() => { setView('ingreso'); setBusquedaDni(''); setSocioEncontrado(null);setTurno({ dia:'', horario:'' });setMensaje('');setFechaIngreso(new Date().toISOString().split('T')[0]); }}><CheckCircle size={36} color="#059669"/><span>Registrar Ingreso</span></button>
+            <button className="btn-menu" onClick={() => { setView('ingreso'); setBusquedaDni(''); setSocioEncontrado(null);setTurno({ dia:'', horario:'' });setMensaje('');setFechaIngreso(new Date().toISOString().split('T')[0]); }}><CheckCircle size={36} color="#059669"/><span>Control Acceso</span></button>
             <button className="btn-menu" onClick={() => setView('menuReportes')}><FileText size={36} color="#64748b"/><span>Reportes</span></button>
           </div>
         )}
 
-        {/* ... (SUBMENUS y FORMULARIOS IGUAL QUE ANTES) ... */}
         {view === 'menuReportes' && (
             <div>
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver al Inicio</button>
@@ -486,17 +416,12 @@ const eliminarProfesor = async () => {
                     <button className="btn-menu" onClick={() => { setView('buscarProfe'); setBusquedaDni(''); }}><Search size={36} color="#d97706"/> <span>Editar Profesor</span></button>
                 </div>
             </div>
-            
         )}
 
         {view === 'formAlumno' && (
-    <div>
-        {/* CORRECCIÓN: Vuelve al menú correspondiente según si es edición o nuevo */}
-        <button onClick={() => setView(formAlumno.id ? 'menuEditar' : 'menuAgregar')} className="btn-volver"> <ArrowLeft size={20}/> Volver</button>
-        
-
-        <h2 style={{marginBottom:'20px'}}>{formAlumno.id ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
-        {/* ... resto del código igual ... */}
+            <div>
+                <button onClick={() => setView(formAlumno.id ? 'menuEditar' : 'menuAgregar')} className="btn-volver"> <ArrowLeft size={20}/> Volver</button>
+                <h2 style={{marginBottom:'20px'}}>{formAlumno.id ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
                 <label>Nombre<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.nombre} onChange={e=>setFormAlumno({...formAlumno, nombre:e.target.value})} required placeholder='Campo obligatorio'/>
                 <label>Apellido<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.apellido} onChange={e=>setFormAlumno({...formAlumno, apellido:e.target.value})} required placeholder='Campo obligatorio'/>
                 <label>DNI<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.dni} onChange={e=>setFormAlumno({...formAlumno, dni:e.target.value})} required placeholder='Campo obligatorio'/>
@@ -506,14 +431,11 @@ const eliminarProfesor = async () => {
                 <label>Email</label><input value={formAlumno.gmail} onChange={e=>setFormAlumno({...formAlumno, gmail:e.target.value})}/>
                 <button onClick={handleGuardarAlumno} className="btn-primary"><Save size={20}/> {formAlumno.id ? 'Guardar Cambios' : 'Registrar'}</button>
                 
-                
                 {view === 'formAlumno' && formAlumno.dni && esEdicionAlumno && (
                 <button onClick={eliminarAlumno} 
                 style={{marginTop:'15px',background:'rgba(239,68,68,0.15)',color:'#ef4444',border:'none',padding:'15px', borderRadius:'12px',cursor:'pointer', width:'100%',fontWeight:'bold'}}>
                     <Trash2 size={18}/> Eliminar Alumno</button>
                 )}
-
-
             </div>
         )}
 
@@ -527,8 +449,7 @@ const eliminarProfesor = async () => {
         )}
 
         {view === 'formProfesor' && (
-    <div>
-        {/* CORRECCIÓN: Vuelve al menú correspondiente según si es edición o nuevo */}
+            <div>
                 <button onClick={() => setView(formProfesor.id ? 'menuEditar' : 'menuAgregar')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
                 <h2>{formProfesor.id ? 'Editar Profesor' : 'Nuevo Profesor'}</h2>
                 <label>Nombre<span style={{color: '#ef4444'}}>*</span></label><input value={formProfesor.nombre} onChange={e=>setFormProfesor({...formProfesor, nombre:e.target.value})} required placeholder='Campo obligatorio'/>
@@ -550,14 +471,14 @@ const eliminarProfesor = async () => {
                     <button onClick={()=>setFormProfesor({...formProfesor, horarios:[...formProfesor.horarios, {dia:'', horario:''}]})} style={{border:'1px dashed var(--border)', background:'transparent', color:'white', padding:'10px', borderRadius:'8px', cursor:'pointer', width:'100%'}}>+ Agregar Horario</button>
                 </div>
                 <button onClick={handleGuardarProfesor} className="btn-primary">Guardar</button>
-               
+                
                 {view === 'formProfesor' && formProfesor.dni && esEdicionProfesor && (
                 <button onClick={eliminarProfesor} 
                 style={{marginTop:'15px',background:'rgba(239,68,68,0.15)',color:'#ef4444',border:'none', padding:'15px',borderRadius:'12px',cursor:'pointer',width:'100%',fontWeight:'bold'}}>
                     <Trash2 size={18}/> Eliminar Profesor</button>)}
             </div>
         )}
-        
+
         {view === 'buscarProfe' && (
             <div>
                 <button onClick={() => setView('menuEditar')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
@@ -567,62 +488,50 @@ const eliminarProfesor = async () => {
             </div>
         )}
 
-        {/* --- VISTA INGRESO MODIFICADA --- */}
         {view === 'ingreso' && (
             <div>
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
-                <h2>Registrar Ingreso</h2>
+                <h2>Control de Acceso</h2>
                 <label>Ingrese DNI del Alumno</label>
                 <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input value={busquedaDni} onChange={e=>setBusquedaDni(e.target.value)} placeholder="Ej: 33444555" style={{marginBottom:0}}/><button onClick={buscarSocioIngreso} className="btn-primary" style={{marginTop:0, width:'auto'}}>Buscar</button></div>
+                
                 {socioEncontrado && (
                     <div style={{marginTop:'30px', padding:'30px', background:'rgba(16, 185, 129, 0.1)', borderRadius:'15px', border:'1px solid #059669'}}>
                         <h3 style={{color:'#10b981', margin:0, fontSize:'1.5rem'}}>{socioEncontrado.nombre} {socioEncontrado.apellido}</h3>
                         <p style={{color:'#34d399'}}>DNI: {socioEncontrado.dni}</p>
                         
-                        {/* CALENDARIO */}
-                        <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Fecha de Asistencia:</label>
-                        <input 
-                            type="date" 
-                            value={fechaIngreso} 
-                            onChange={(e) => setFechaIngreso(e.target.value)}
-                            style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #059669', background: 'transparent', color: 'inherit'}}
-                        />
+                        {asistenciaHoy && !asistenciaHoy.horario_egreso ? (
+                            // CASO A: YA ESTÁ ADENTRO -> BOTÓN EGRESO
+                            <div style={{textAlign:'center', marginTop:'20px'}}>
+                                <p style={{fontSize:'1.2rem', fontWeight:'bold', color:'white'}}>🏊 Alumno actualmente en el natatorio</p>
+                                <p>Ingresó a las: {asistenciaHoy.horario_ingreso} hs</p>
+                                <button onClick={registrarEgreso} className="btn-primary" style={{background:'#eab308', color:'black', fontWeight:'bold', marginTop:'20px'}}>
+                                    👋 Registrar Egreso
+                                </button>
+                            </div>
+                        ) : asistenciaHoy && asistenciaHoy.horario_egreso ? (
+                            // CASO B: YA SE FUE
+                            <div style={{textAlign:'center', marginTop:'20px'}}>
+                                <p style={{color:'#ef4444', fontWeight:'bold'}}>Este alumno ya completó su turno hoy.</p>
+                                <p>Ingreso: {asistenciaHoy.horario_ingreso} - Egreso: {asistenciaHoy.horario_egreso}</p>
+                            </div>
+                        ) : (
+                            // CASO C: NO VINO -> MOSTRAR INGRESO
+                            <>
+                                <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Fecha de Asistencia:</label>
+                                <input type="date" value={fechaIngreso} onChange={(e) => setFechaIngreso(e.target.value)} style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #059669', background: 'transparent', color: 'inherit'}}/>
 
-                        {/* SELECTOR DE TURNO (Día bloqueado, Horario filtrado) */}
-                        <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label>
-                        <div style={{display:'flex', gap:'15px'}}>
-                            {/* Input del Día: Ahora está DESHABILITADO (disabled) porque se calcula solo */}
-                            <input 
-                                value={turno.dia || 'Seleccione fecha...'} 
-                                disabled 
-                                style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} 
-                            />
-                            
-                            {/* Selector de Horario: Solo muestra los del día elegido */}
-                            <select
-                                value={turno.horario}
-                                disabled
-                                style={{
-                                    flex:1,
-                                    padding:'10px',
-                                    borderRadius:'8px',
-                                    border:'1px solid #059669',
-                                    background:'rgba(0,0,0,0.2)',
-                                    color:'white',
-                                    opacity: 0.8
-                                }}
-                                >
-                                <option value={turno.horario}>
-                                    {turno.horario || 'Horario...'}
-                                </option>
-                          </select>
-
-                        </div>
-                        
-                        {/* Aviso si no hay día válido */}
-                        {fechaIngreso && !turno.dia && <p style={{color:'#ef4444', fontSize:'0.9rem', marginTop:'5px'}}>* No hay turnos disponibles para esta fecha .</p>}
-                        
-                        <button onClick={registrarAsistencia} disabled={!turno.dia || !turno.horario} className="btn-primary" style={{background:'#059669', border:'none', opacity: (!turno.dia || !turno.horario) ? 0.5 : 1}}>Confirmar Acceso</button>
+                                <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label>
+                                <div style={{display:'flex', gap:'15px'}}>
+                                    <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
+                                    <select value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
+                                        <option value={turno.horario}>{turno.horario || 'Horario...'}</option>
+                                    </select>
+                                </div>
+                                {fechaIngreso && !turno.dia && <p style={{color:'#ef4444', fontSize:'0.9rem', marginTop:'5px'}}>* No hay turnos disponibles.</p>}
+                                <button onClick={registrarAsistencia} disabled={!turno.dia || !turno.horario} className="btn-primary" style={{background:'#059669', border:'none', opacity: (!turno.dia || !turno.horario) ? 0.5 : 1}}>Confirmar Acceso</button>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
@@ -651,16 +560,15 @@ const eliminarProfesor = async () => {
                                     <tr>
                                         <th>Fecha de Asistencia</th>
                                         <th>Turno</th>
+                                        <th>Salida</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {historialPersonal.map((h, i) => (
                                         <tr key={i}>
-                                            <td style={{fontWeight:'600'}}>
-                                            {h.fecha_registro.split('T')[0].split('-').reverse().join('/')}
-                                            </td>
-
-                                            <td style={{fontWeight:'bold', color:'var(--primary)'}}>{h.dia} {h.horario}</td>
+                                            <td style={{fontWeight:'600'}}>{h.fecha_registro.split('T')[0].split('-').reverse().join('/')}</td>
+                                            <td style={{fontWeight:'bold', color:'var(--primary)'}}>{h.dia} {h.horario_ingreso}</td>
+                                            <td>{getHoraSalida(h.horario_ingreso, h.horario_egreso)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -687,30 +595,24 @@ const eliminarProfesor = async () => {
                             <tr>
                                 <th>Fecha</th> 
                                 <th>Turno</th>
+                                <th>Salida</th>
                                 <th>Nombre</th>
                                 <th>DNI</th>
-                                <th>Acción</th> {/* Nueva Columna */}
+                                <th>Acción</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {listaAsistencia.map((a, i) => (
-                                <tr key={i}>
-                                    <td>{new Date(a.fecha_registro).toLocaleDateString()}</td>
-                                    <td style={{fontWeight:'bold', color:'var(--primary)'}}>{a.dia} {a.horario}</td>
+                            {listaAsistencia.map((a) => (
+                                <tr key={a.id}>
+                                    <td>{a.fecha_registro.split('T')[0].split('-').reverse().join('/')}</td>
+                                    <td style={{fontWeight:'bold', color:'var(--primary)'}}>{a.dia} {a.horario_ingreso}</td>
+                                    <td>{getHoraSalida(a.horario_ingreso, a.horario_egreso)}</td>
                                     <td>{a.nombre} {a.apellido}</td>
                                     <td>{a.dni}</td>
                                     <td>
-                                        {/* Botón de borrar */}
                                         <button 
                                             onClick={() => eliminarAsistencia(a.id)} 
-                                            style={{
-                                                background: 'rgba(239, 68, 68, 0.15)', 
-                                                color: '#ef4444', 
-                                                border: 'none', 
-                                                padding: '8px', 
-                                                borderRadius: '8px', 
-                                                cursor: 'pointer'
-                                            }}
+                                            style={{background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer'}}
                                             title="Eliminar de la lista"
                                         >
                                             <Trash2 size={18} />
@@ -723,7 +625,6 @@ const eliminarProfesor = async () => {
                 ) : busquedaRealizada && <p style={{textAlign:'center', marginTop:'30px', color:'var(--text-muted)'}}>No hay registros para este turno.</p>}
             </div>
         )}
-
       </div>
     </div>
   );
