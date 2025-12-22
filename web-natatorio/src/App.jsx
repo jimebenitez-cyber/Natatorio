@@ -602,6 +602,7 @@ const eliminarProfesor = async () => {
                             <select
                                 value={turno.horario}
                                 disabled
+                                className="select-sin-flecha"
                                 style={{
                                     flex:1,
                                     padding:'10px',
