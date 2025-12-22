@@ -285,7 +285,7 @@ const eliminarProfesor = async () => {
           if(res.ok) {
               const data = await res.json();
               setFormProfesor({ ...data, horarios: data.horarios.length ? data.horarios : [{dia:'', horario:''}] });
-              setFormProfesor(true);
+              setEsEdicionProfesor(true);
               setView('formProfesor');
               setBusquedaDni('');
           } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
@@ -514,9 +514,6 @@ const eliminarProfesor = async () => {
                 <button onClick={eliminarProfesor} 
                 style={{marginTop:'15px',background:'rgba(239,68,68,0.15)',color:'#ef4444',border:'none', padding:'15px',borderRadius:'12px',cursor:'pointer',width:'100%',fontWeight:'bold'}}>
                     <Trash2 size={18}/> Eliminar Profesor</button>)}
-
-
-
             </div>
         )}
         
