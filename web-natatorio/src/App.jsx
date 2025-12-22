@@ -54,6 +54,30 @@ export default function App() {
   // Filtra horarios basándose en el día seleccionado
   const getHorasPorDia = (dia) => horariosBD.filter(i => i.dia === dia).map(i => i.horario).sort();
 
+  const obtenerHoraTurno = () => {
+  const ahora = new Date();
+  const hora = ahora.getHours();
+  const minutos = ahora.getMinutes();
+  
+  if(minutos>=45)
+  {
+    hora= (hora +1)%24;
+  }
+
+  return `${hora.toString().padStart(2, '0')}:00`;
+
+};
+
+useEffect(() => {
+  if (!turno.dia) return;
+
+  setTurno(prev => ({
+    ...prev,
+    horario: obtenerHoraTurno()
+  }));
+}, [turno.dia]);
+
+
   // --- NUEVA LÓGICA: DETECTAR DÍA DE LA SEMANA AUTOMÁTICAMENTE ---
   useEffect(() => {
     if (fechaIngreso && view === 'ingreso') {
@@ -514,15 +538,24 @@ const eliminarProfesor = async () => {
                             />
                             
                             {/* Selector de Horario: Solo muestra los del día elegido */}
-                            <select 
-                                value={turno.horario} 
-                                onChange={e=>setTurno({...turno, horario:e.target.value})} 
-                                disabled={!turno.dia} 
-                                style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}
-                            >
-                                <option value="">Horario...</option>
-                                {turno.dia ? getHorasPorDia(turno.dia).map(h=><option key={h} value={h}>{h}</option>) : null}
-                            </select>
+                            <select
+                                value={turno.horario}
+                                disabled
+                                style={{
+                                    flex:1,
+                                    padding:'10px',
+                                    borderRadius:'8px',
+                                    border:'1px solid #059669',
+                                    background:'rgba(0,0,0,0.2)',
+                                    color:'white',
+                                    opacity: 0.8
+                                }}
+                                >
+                                <option value={turno.horario}>
+                                    {turno.horario || 'Horario...'}
+                                </option>
+                          </select>
+
                         </div>
                         
                         {/* Aviso si no hay día válido */}
