@@ -266,3 +266,16 @@ tr:hover td {
 }
 .alerta.exito { background-color: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
 .alerta.error { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
+
+
+.select-sin-flecha {
+  -webkit-appearance: none; /* Chrome / Safari */
+  -moz-appearance: none;    /* Firefox */
+  appearance: none;         /* Standard */
+  background-image: none !important;
+}
+
+/* Extra: por si el navegador insiste */
+.select-sin-flecha::-ms-expand {
+  display: none;
+}

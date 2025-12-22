@@ -44,6 +44,7 @@ export default function App() {
 
   const [horariosBD, setHorariosBD] = useState([]);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
+  const [enviando, setEnviando] = useState(false);
 
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado','Domingo'];
   const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
@@ -226,7 +227,7 @@ export default function App() {
               setEsEdicionProfesor(true);
               setView('formProfesor');
               setBusquedaDni('');
-          } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 4000); }
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
@@ -256,7 +257,7 @@ export default function App() {
                     setMensaje('¡Alumno verificado!');
                 }
             }
-            setTimeout(() => setMensaje(''), 2000);
+            setTimeout(() => setMensaje(''), 7000);
         } else { 
             setMensaje('DNI no encontrado.'); 
             setSocioEncontrado(null); 
@@ -270,11 +271,11 @@ export default function App() {
   };
 
   const registrarAsistencia = async () => {
-      if (!turno.dia || !turno.horario) {
-          setMensaje('⚠️ Por favor selecciona un horario válido.');
-          setTimeout(() => setMensaje(''), 3000);
-          return;
-      }
+      // Si ya está enviando o faltan datos, no hace nada
+      if (enviando || !turno.dia || !turno.horario) return;
+
+      setEnviando(true); // 🔒 BLOQUEAMOS EL BOTÓN
+
       try {
           const res = await fetch('http://localhost:5000/api/asistencias', {
               method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -296,9 +297,18 @@ export default function App() {
                   setTurno({dia:'', horario:''}); 
                   setFechaIngreso(new Date().toISOString().split('T')[0]); 
                   setView('main'); 
+                  setEnviando(false); // 🔓 DESBLOQUEAMOS AL TERMINAR
               }, 2000);
-          } else { setMensaje(data.message || 'Error al guardar.'); setTimeout(() => setMensaje(''), 3000); }
-      } catch (error) { setMensaje('Error de conexión.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { 
+              setMensaje(data.message || 'Error al guardar.'); 
+              setEnviando(false); // 🔓 DESBLOQUEAR SI HUBO ERROR
+              setTimeout(() => setMensaje(''), 3000); 
+          }
+      } catch (error) { 
+          setMensaje('Error de conexión.'); 
+          setEnviando(false); // 🔓 DESBLOQUEAR SI HUBO ERROR
+          setTimeout(() => setMensaje(''), 4000); 
+      }
   };
 
   const registrarEgreso = async () => {
@@ -542,7 +552,7 @@ export default function App() {
 
         <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label> <div style={{display:'flex', gap:'15px'}}>
                                     <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
-                                    <select value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
+                                    <select className='select-sin-flecha' value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
                                         <option value={turno.horario}>{turno.horario || 'Horario...'}</option>
                                     </select>
                                 </div>
