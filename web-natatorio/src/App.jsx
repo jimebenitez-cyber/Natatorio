@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText } from 'lucide-react';
 import './App.css'; 
 
+const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
+const regexDni = /^\d+$/;
+
 export default function App() {
   const [view, setView] = useState('main');
   const [mensaje, setMensaje] = useState('');
@@ -182,9 +185,21 @@ const eliminarProfesor = async () => {
         setTimeout(() => setMensaje(''), 3000);
         return;
     }
+    // VALIDACIÓN: DNI solo números
+    if (!regexDni.test(formAlumno.dni)) {
+        setMensaje('⚠️ El DNI debe contener solo números.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
     //VALIDACION DEL NOMBRE
     if (!formAlumno.nombre || formAlumno.nombre.trim() === "") {
         setMensaje('⚠️ El Nombre es obligatorio para registrar al alumno.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
+        // VALIDACIÓN: nombre solo letras
+    if (!regexNombre.test(formAlumno.nombre)) {
+        setMensaje('⚠️ El nombre solo puede contener letras.');
         setTimeout(() => setMensaje(''), 3000);
         return;
     }
@@ -194,6 +209,14 @@ const eliminarProfesor = async () => {
         setTimeout(() => setMensaje(''), 3000);
         return;
     }
+    // VALIDACIÓN: apellido solo letras
+    if (!regexNombre.test(formAlumno.apellido)) {
+        setMensaje('⚠️ El apellido solo puede contener letras.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
+
+
     const esEdicion = !!formAlumno.id;
     try {
         const url = esEdicion ? `http://localhost:5000/api/alumnos/${formAlumno.id}` : 'http://localhost:5000/api/alumnos';
@@ -229,15 +252,33 @@ const eliminarProfesor = async () => {
         setTimeout(() => setMensaje(''), 3000);
         return;
     }
+    // VALIDACIÓN: DNI solo números
+    if (!regexDni.test(formProfesor.dni)) {
+        setMensaje('⚠️ El DNI debe contener solo números.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
     //VALIDACION DEL NOMBRE
     if (!formProfesor.nombre || formProfesor.nombre.trim() === "") {
         setMensaje('⚠️ El Nombre es obligatorio para registrar al profesor.');
         setTimeout(() => setMensaje(''), 3000);
         return;
     }
+    // VALIDACIÓN: nombre solo letras
+    if (!regexNombre.test(formProfesor.nombre)) {
+        setMensaje('⚠️ El nombre solo puede contener letras.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
     //VALIDACION DEL APELLIDO
     if (!formProfesor.apellido || formProfesor.apellido.trim() === "") {
         setMensaje('⚠️ El Apellido es obligatorio para registrar al profesor.');
+        setTimeout(() => setMensaje(''), 3000);
+        return;
+    }
+    // VALIDACIÓN: apellido solo letras
+    if (!regexNombre.test(formProfesor.apellido)) {
+        setMensaje('⚠️ El apellido solo puede contener letras.');
         setTimeout(() => setMensaje(''), 3000);
         return;
     }
