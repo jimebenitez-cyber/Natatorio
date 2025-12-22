@@ -18,6 +18,9 @@ export default function App() {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   // Estados
+  const [esEdicionAlumno, setEsEdicionAlumno] = useState(false);
+    const [esEdicionProfesor, setEsEdicionProfesor] = useState(false);
+
   const [editarFecha, setEditarFecha] = useState(false);
 
   const [formAlumno, setFormAlumno] = useState({ id: null, dni: '', nombre: '', apellido: '', celular: '', gmail: '' });
@@ -188,6 +191,7 @@ const eliminarProfesor = async () => {
           if(res.ok) {
               const data = await res.json();
               setFormAlumno({ id: data.id, dni: data.dni, nombre: data.nombre, apellido: data.apellido, celular: data.telefono, gmail: data.email });
+              setEsEdicionAlumno(true);
               setView('formAlumno');
               setBusquedaDni(''); 
           } else { setMensaje('⚠️ Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
@@ -234,6 +238,7 @@ const eliminarProfesor = async () => {
           if(res.ok) {
               const data = await res.json();
               setFormProfesor({ ...data, horarios: data.horarios.length ? data.horarios : [{dia:'', horario:''}] });
+              setFormProfesor(true);
               setView('formProfesor');
               setBusquedaDni('');
           } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
@@ -371,8 +376,8 @@ const eliminarProfesor = async () => {
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
                 <h2 style={{marginBottom:'30px'}}>¿Qué deseas registrar?</h2>
                 <div className="grid-menu">
-                    <button className="btn-menu" onClick={() => { setFormAlumno({id:null, dni:'', nombre:'', apellido:'', celular:'', gmail:''}); setView('formAlumno'); }}><Users size={36} color="var(--primary)"/> <span>Nuevo Alumno</span></button>
-                    <button className="btn-menu" onClick={() => { setFormProfesor({id:null, nombre:'', apellido:'', dni:'', telefono:'', especialidad:'', horarios:[{dia:'', horario:''}]}); setView('formProfesor'); }}><GraduationCap size={36} color="#059669"/> <span>Nuevo Profesor</span></button>
+                    <button className="btn-menu" onClick={() => { setFormAlumno({id:null, dni:'', nombre:'', apellido:'', celular:'', gmail:''}); setEsEdicionAlumno(false); setView('formAlumno'); }}><Users size={36} color="var(--primary)"/> <span>Nuevo Alumno</span></button>
+                    <button className="btn-menu" onClick={() => { setFormProfesor({id:null, nombre:'', apellido:'', dni:'', telefono:'', especialidad:'', horarios:[{dia:'', horario:''}]}); setEsEdicionProfesor(false); setView('formProfesor'); }}><GraduationCap size={36} color="#059669"/> <span>Nuevo Profesor</span></button>
                 </div>
             </div>
         )}
@@ -386,6 +391,7 @@ const eliminarProfesor = async () => {
                     <button className="btn-menu" onClick={() => { setView('buscarProfe'); setBusquedaDni(''); }}><Search size={36} color="#d97706"/> <span>Editar Profesor</span></button>
                 </div>
             </div>
+            
         )}
 
         {view === 'formAlumno' && (
@@ -393,6 +399,7 @@ const eliminarProfesor = async () => {
         {/* CORRECCIÓN: Vuelve al menú correspondiente según si es edición o nuevo */}
         <button onClick={() => setView(formAlumno.id ? 'menuEditar' : 'menuAgregar')} className="btn-volver"> <ArrowLeft size={20}/> Volver</button>
         
+
         <h2 style={{marginBottom:'20px'}}>{formAlumno.id ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
         {/* ... resto del código igual ... */}
                 <label>Nombre<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.nombre} onChange={e=>setFormAlumno({...formAlumno, nombre:e.target.value})} required placeholder='Campo obligatorio'/>
@@ -405,23 +412,10 @@ const eliminarProfesor = async () => {
                 <button onClick={handleGuardarAlumno} className="btn-primary"><Save size={20}/> {formAlumno.id ? 'Guardar Cambios' : 'Registrar'}</button>
                 
                 
-                {view === 'formAlumno' && formAlumno.dni && (
-                <button 
-                    onClick={eliminarAlumno}
-                    style={{
-                    marginTop:'15px',
-                    background:'rgba(239,68,68,0.15)',
-                    color:'#ef4444',
-                    border:'none',
-                    padding:'15px',
-                    borderRadius:'12px',
-                    cursor:'pointer',
-                    width:'100%',
-                    fontWeight:'bold'
-                    }}
-                >
-                    <Trash2 size={18}/> Eliminar Alumno
-                </button>
+                {view === 'formAlumno' && formAlumno.dni && esEdicionAlumno && (
+                <button onClick={eliminarAlumno} 
+                style={{marginTop:'15px',background:'rgba(239,68,68,0.15)',color:'#ef4444',border:'none',padding:'15px', borderRadius:'12px',cursor:'pointer', width:'100%',fontWeight:'bold'}}>
+                    <Trash2 size={18}/> Eliminar Alumno</button>
                 )}
 
 
@@ -462,7 +456,7 @@ const eliminarProfesor = async () => {
                 </div>
                 <button onClick={handleGuardarProfesor} className="btn-primary">Guardar</button>
                
-                {view === 'formProfesor' && formProfesor.dni && (
+                {view === 'formProfesor' && formProfesor.dni && esEdicionProfesor && (
                 <button onClick={eliminarProfesor} 
                 style={{marginTop:'15px',background:'rgba(239,68,68,0.15)',color:'#ef4444',border:'none', padding:'15px',borderRadius:'12px',cursor:'pointer',width:'100%',fontWeight:'bold'}}>
                     <Trash2 size={18}/> Eliminar Profesor</button>)}

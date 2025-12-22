@@ -145,6 +145,17 @@ app.put('/api/profesores/:id', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const profeId = req.params.id;
+        
+        const checkDni = await pool.request()
+            .input('dni', sql.VarChar, req.body.dni)
+            .input('id', sql.Int, profeId)
+            .query(`SELECT id FROM Profesores WHERE dni = @dni AND id <> @id`);
+
+        if (checkDni.recordset.length > 0) {
+            return res.status(400).json({
+                message: '⚠️ Ese DNI ya está asignado a otro profesor.'
+            });
+        }
 
         await pool.request()
             .input('id', sql.Int, profeId)
@@ -257,6 +268,21 @@ app.put('/api/alumnos/:id', async (req, res) => {
     
     try {
         const pool = await sql.connect(dbConfig);
+        /*const checkDni = await pool.request()
+            .input('dni', sql.VarChar, req.body.dni)
+            .input('id', sql.Int, AlumnoId)
+            .query(`
+                SELECT id 
+                FROM Alumnos
+                WHERE dni = @dni 
+                AND id <> @id
+            `);
+
+        if (checkDni.recordset.length > 0) {
+            return res.status(400).json({
+                message: '⚠️ Ese DNI ya está asignado a otro alumno.'
+            });
+        }*/
         await pool.request()
             .input('id', sql.Int, req.params.id)
             .input('dni', sql.VarChar, req.body.dni)
