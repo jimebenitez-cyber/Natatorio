@@ -521,56 +521,21 @@ export default function App() {
                                 <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Fecha de Asistencia:</label>
                                 <input type="date" value={fechaIngreso} onChange={(e) => setFechaIngreso(e.target.value)} style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #059669', background: 'transparent', color: 'inherit'}}/>
 
-<<<<<<< HEAD
-                        {/* SELECTOR DE TURNO (Día bloqueado, Horario filtrado) */}
-                        <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label>
-                        <div style={{display:'flex', gap:'15px'}}>
-                            {/* Input del Día: Ahora está DESHABILITADO (disabled) porque se calcula solo */}
-                            <input 
-                                value={turno.dia || 'Seleccione fecha...'} 
-                                disabled 
-                                style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} 
-                            />
-                            
-                            {/* Selector de Horario: Solo muestra los del día elegido */}
-                            <select
-                                value={turno.horario}
-                                disabled
-                                className="select-sin-flecha"
-                                style={{
-                                    flex:1,
-                                    padding:'10px',
-                                    borderRadius:'8px',
-                                    border:'1px solid #059669',
-                                    background:'rgba(0,0,0,0.2)',
-                                    color:'white',
-                                    opacity: 0.8
-                                }}
-                                >
-                                <option value={turno.horario}>
-                                    {turno.horario || 'Horario...'}
-                                </option>
-                          </select>
-
-                        </div>
-                        
-                        {/* Aviso si no hay día válido */}
-                        {fechaIngreso && !turno.dia && <p style={{color:'#ef4444', fontSize:'0.9rem', marginTop:'5px'}}>* No hay turnos disponibles para esta fecha .</p>}
-                        
-                        <button onClick={registrarAsistencia} disabled={!turno.dia || !turno.horario} className="btn-primary" style={{background:'#059669', border:'none', opacity: (!turno.dia || !turno.horario) ? 0.5 : 1}}>Confirmar Acceso</button>
-=======
                                 <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label>
                                 <div style={{display:'flex', gap:'15px'}}>
                                     <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
-                                    <select value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
-                                        <option value={turno.horario}>{turno.horario || 'Horario...'}</option>
+                                    <select 
+                                     className="select-sin-flecha"
+                                     value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
+                                        <option value={turno.horario}>{turno.horario || 'Horario...'}
+                                        </option>
+                                        
                                     </select>
                                 </div>
                                 {fechaIngreso && !turno.dia && <p style={{color:'#ef4444', fontSize:'0.9rem', marginTop:'5px'}}>* No hay turnos disponibles.</p>}
                                 <button onClick={registrarAsistencia} disabled={!turno.dia || !turno.horario} className="btn-primary" style={{background:'#059669', border:'none', opacity: (!turno.dia || !turno.horario) ? 0.5 : 1}}>Confirmar Acceso</button>
                             </>
                         )}
->>>>>>> 99128add2570bda73049cf207d87ec395e299ab5
                     </div>
                 )}
             </div>
