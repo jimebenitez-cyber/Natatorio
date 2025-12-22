@@ -1,10 +1,13 @@
-//PROBANDO
+//APP.JSX
 import React, { useState, useEffect } from 'react';
 import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText } from 'lucide-react';
 import './App.css'; 
 
-const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
-const regexDni = /^\d+$/;
+const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/; //valida que se letra
+const regexDni = /^\d+$/; //valida que sea numero 
+
+const diasReporte = ['Lunes','Martes','Miércoles','Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const horasReporte = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'];
 
 export default function App() {
   const [view, setView] = useState('main');
@@ -39,7 +42,7 @@ export default function App() {
   const [fechaIngreso, setFechaIngreso] = useState(new Date().toISOString().split('T')[0]);
 
   // Estados Listado y Historial
-  const [filtroListado, setFiltroListado] = useState({ dia: '', horario: '' });
+  const [filtroListado, setFiltroListado] = useState({ fecha: '', horario: '' });
   const [listaAsistencia, setListaAsistencia] = useState([]);
   const [historialPersonal, setHistorialPersonal] = useState([]);
   const [alumnoHistorial, setAlumnoHistorial] = useState(null);
@@ -392,9 +395,10 @@ const eliminarProfesor = async () => {
   };
 
   const verListado = async () => {
-      if(!filtroListado.dia || !filtroListado.horario) return;
+      if(!filtroListado.fecha || !filtroListado.horario) return;
       try {
-          const res = await fetch(`http://localhost:5000/api/asistencias/listado?dia=${filtroListado.dia}&horario=${filtroListado.horario}`);
+          const res = await fetch(`http://localhost:5000/api/asistencias/listado?fecha=${filtroListado.fecha}&horario=${filtroListado.horario}`);
+          console.log(res)
           if(res.ok) { setListaAsistencia(await res.json()); setBusquedaRealizada(true); }
       } catch (error) { setMensaje('Error al cargar lista'); setTimeout(() => setMensaje(''), 3000); }
   };
@@ -460,7 +464,7 @@ const eliminarProfesor = async () => {
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver al Inicio</button>
                 <h2 style={{marginBottom:'30px'}}>Seleccione el Reporte</h2>
                 <div className="grid-menu">
-                    <button className="btn-menu" onClick={() => { setView('listados'); setListaAsistencia([]); setFiltroListado({dia:'', horario:''}); setBusquedaRealizada(false); }}><ClipboardList size={36} color="var(--primary)"/> <span>Asistencias por Turno</span></button>
+                    <button className="btn-menu" onClick={() => { setView('listados'); setListaAsistencia([]); setFiltroListado({fecha:'', horario:''}); setBusquedaRealizada(false); }}><ClipboardList size={36} color="var(--primary)"/> <span>Asistencias por Turno</span></button>
                     <button className="btn-menu" onClick={() => { setView('buscarHistorial'); setBusquedaDni(''); setHistorialPersonal([]); setAlumnoHistorial(null); }}><CalendarDays size={36} color="#059669"/> <span>Historial de Alumno</span></button>
                 </div>
             </div>
@@ -494,7 +498,6 @@ const eliminarProfesor = async () => {
         {/* CORRECCIÓN: Vuelve al menú correspondiente según si es edición o nuevo */}
         <button onClick={() => setView(formAlumno.id ? 'menuEditar' : 'menuAgregar')} className="btn-volver"> <ArrowLeft size={20}/> Volver</button>
         
-
         <h2 style={{marginBottom:'20px'}}>{formAlumno.id ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
         {/* ... resto del código igual ... */}
                 <label>Nombre<span style={{color: '#ef4444'}}>*</span></label><input value={formAlumno.nombre} onChange={e=>setFormAlumno({...formAlumno, nombre:e.target.value})} required placeholder='Campo obligatorio'/>
@@ -676,9 +679,10 @@ const eliminarProfesor = async () => {
                 <button onClick={() => setView('menuReportes')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
                 <h2>Listado de Asistencia</h2>
                 <div style={{display:'flex', gap:'15px', marginTop:'20px', alignItems:'center'}}>
-                    <select value={filtroListado.dia} onChange={e=>{setFiltroListado({...filtroListado, dia:e.target.value, horario:''}); setBusquedaRealizada(false);}} style={{marginBottom:0}}><option value="">Día...</option>{getDiasDisponibles().map(d=><option key={d} value={d}>{d}</option>)}</select>
-                    <select value={filtroListado.horario} onChange={e=>{setFiltroListado({...filtroListado, horario:e.target.value}); setBusquedaRealizada(false);}} disabled={!filtroListado.dia} style={{marginBottom:0}}><option value="">Hora...</option>{getHorasPorDia(filtroListado.dia).map(h=><option key={h} value={h}>{h}</option>)}</select>
-                    <button onClick={verListado} className="btn-primary" style={{marginTop:0, width:'auto'}}>Ver</button>
+                    <input type="date" value={filtroListado.fecha} onChange={e => {setFiltroListado({ fecha: e.target.value, horario: '' });setBusquedaRealizada(false);}} />
+                    <select value={filtroListado.horario} onChange={e=>{setFiltroListado({...filtroListado, horario:e.target.value}); setBusquedaRealizada(false);}} disabled={!filtroListado.fecha}><option value="">Hora...</option>{horasReporte.map(h=>(<option key={h} value={h}>{h}</option>))}</select>
+                    <button onClick={verListado} className="btn-primary" style={{width: 'auto',marginTop: 0, marginBottom: 20
+        }}>Ver</button>
                 </div>
 
                 {listaAsistencia.length > 0 ? (

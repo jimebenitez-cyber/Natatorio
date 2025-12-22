@@ -217,7 +217,7 @@ app.post('/api/asistencias', async (req, res) => {
                 WHERE alumno_dni = @dni 
                 AND dia = @dia 
                 AND horario = @horario 
-                AND CAST(fecha_registro AS DATE) = CAST(@fecha AS DATE)
+                AND CAST(fecha_registro AS DATE) = @fecha
             `);
             
         if (check.recordset.length > 0) {
@@ -229,7 +229,7 @@ app.post('/api/asistencias', async (req, res) => {
             .input('dni', sql.VarChar, req.body.dni)
             .input('dia', sql.VarChar, req.body.dia)
             .input('horario', sql.VarChar, req.body.horario)
-            .input('fecha', sql.VarChar, fechaRegistro) // <--- Pasamos la fecha
+            .input('fecha', sql.Date, fechaRegistro) 
             .query('INSERT INTO Asistencias (alumno_dni, dia, horario, fecha_registro) VALUES (@dni, @dia, @horario, @fecha)');
             
         res.status(201).json({ message: 'Asistencia guardada' });
@@ -238,22 +238,21 @@ app.post('/api/asistencias', async (req, res) => {
         res.status(500).json({ message: 'Error al guardar asistencia' });
     }
 });
-// 8. Listado Asistencia (CORREGIDO: Ahora incluye 'a.id')
+// 8. Listado Asistencia 
 app.get('/api/asistencias/listado', async (req, res) => {
-    const { dia, horario } = req.query; 
-    try {
+    const { fecha, horario } = req.query;
+    try {   
         const pool = await sql.connect(dbConfig);
         const result = await pool.request()
-            .input('dia', sql.VarChar, dia)
-            .input('horario', sql.VarChar, horario)
-            // ↓↓↓ AQUÍ ESTÁ LA CLAVE: a.id ↓↓↓
+            .input('fecha', sql.Date, fecha)
+            .input('horario', sql.VarChar(5), horario)
             .query(`
                 SELECT a.id, a.fecha_registro, a.dia, a.horario, al.nombre, al.apellido, al.dni
                 FROM Asistencias a
                 INNER JOIN Alumnos al ON a.alumno_dni = al.dni
-                WHERE a.dia = @dia 
-                AND a.horario = @horario
-                AND a.fecha_registro >= CAST(DATEADD(day, -6, GETDATE()) AS DATE)
+                WHERE 
+                CONVERT(date, a.fecha_registro) = @fecha
+                AND LEFT(a.horario, 5) = @horario
                 ORDER BY a.fecha_registro DESC
             `);
         res.json(result.recordset);
