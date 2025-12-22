@@ -81,33 +81,56 @@ useEffect(() => {
 }, [turno.dia]);
 
 
-  // --- NUEVA LÓGICA: DETECTAR DÍA DE LA SEMANA AUTOMÁTICAMENTE ---
-  useEffect(() => {
-    if (fechaIngreso && view === 'ingreso') {
-        // 1. Convertir string "YYYY-MM-DD" a objeto Date correctamente (evitando error de zona horaria)
-        const [year, month, day] = fechaIngreso.split('-').map(Number);
-        const fechaObj = new Date(year, month - 1, day); // Mes es index 0-11
+ useEffect(() => {
+    // Agregamos esta validación para que no calcule nada si no hay alumno en pantalla
+    if (fechaIngreso && view === 'ingreso' && socioEncontrado) {
         
-        // 2. Obtener día de la semana (0=Domingo, 1=Lunes...)
+        const [year, month, day] = fechaIngreso.split('-').map(Number);
+        const fechaObj = new Date(year, month - 1, day);
+        
         const indexDia = fechaObj.getDay();
         const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
         const nombreDia = nombresDias[indexDia];
 
-        // 3. Verificar si el natatorio abre ese día
         const abreEseDia = getDiasDisponibles().includes(nombreDia);
 
         if (abreEseDia) {
-            // Si abre, seleccionamos el día automáticamente y reseteamos la hora
-            setTurno(prev => 
-                ({ ...prev, dia: nombreDia, horario: '' }));
+            let horarioCalculado = '';
+            
+            const horasDisponibles = getHorasPorDia(nombreDia);
+            const hoyString = new Date().toISOString().split('T')[0];
+            
+            // Si es HOY y hay horarios, buscamos el más cercano
+            if (fechaIngreso === hoyString && horasDisponibles.length > 0) {
+                const ahora = new Date();
+                const minutosActuales = (ahora.getHours() * 60) + ahora.getMinutes();
+                let menorDiferencia = Infinity;
+
+                horasDisponibles.forEach(horaStr => {
+                    const [h, m] = horaStr.split(':').map(Number);
+                    const minutosTurno = (h * 60) + m;
+                    const diferencia = Math.abs(minutosTurno - minutosActuales);
+
+                    if (diferencia < menorDiferencia) {
+                        menorDiferencia = diferencia;
+                        horarioCalculado = horaStr;
+                    }
+                });
+            }
+
+            setTurno(prev => ({ 
+                ...prev, 
+                dia: nombreDia, 
+                horario: horarioCalculado 
+            }));
+
         } else {
-            // Si es Domingo o un día que no abren
             setTurno({ dia: '', horario: '' });
             setMensaje(`⚠️ El natatorio no abre los ${nombreDia}s`);
-            setTimeout(() => setMensaje(''), 3000);
         }
     }
-  }, [fechaIngreso, view, horariosBD]); // Se ejecuta cada vez que cambias la fecha
+    // IMPORTANTE: Agregamos 'socioEncontrado' aquí abajo
+  }, [fechaIngreso, view, horariosBD, socioEncontrado]);
 
   // --- FUNCIONES API ---
   const asignarDniTemporal = async (tipo) => {
@@ -269,24 +292,31 @@ const eliminarProfesor = async () => {
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
-  const buscarSocioIngreso = async () => {
+ const buscarSocioIngreso = async () => {
     if (!busquedaDni) return;
     try {
         const r = await fetch(`http://localhost:5000/api/alumnos/${busquedaDni}`);
         if(r.ok) {
             setSocioEncontrado(await r.json());
             setMensaje('¡Alumno verificado!');
-            // Al buscar socio, forzamos la actualización del día por si ya había fecha seleccionada
-            const [y,m,d] = fechaIngreso.split('-');
-            const date = new Date(y, m-1, d);
-            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-            const diaNombre = dias[date.getDay()];
-            if (getDiasDisponibles().includes(diaNombre)) {
-                setTurno(prev => ({ ...prev, dia: diaNombre, horario: '' }));
-            }
+            
+            // --- BORRAR O COMENTAR ESTO ---
+            // El useEffect ahora se encarga de definir día y horario
+            // const [y,m,d] = fechaIngreso.split('-');
+            // ... (borrar toda la lógica manual de fechas aquí) ...
+            // setTurno(...) 
+            // ------------------------------
+
             setTimeout(() => setMensaje(''), 1500);
-        } else { setMensaje('⚠️ DNI no encontrado.'); setSocioEncontrado(null); setTimeout(() => setMensaje(''), 3000); }
-    } catch(e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
+        } else { 
+            setMensaje('DNI no encontrado.'); 
+            setSocioEncontrado(null); 
+            setTimeout(() => setMensaje(''), 3000); 
+        }
+    } catch(e) { 
+        setMensaje('Error conexión'); 
+        setTimeout(() => setMensaje(''), 3000); 
+    }
   };
 
   const registrarAsistencia = async () => {
