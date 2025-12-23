@@ -519,51 +519,34 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
 )}
 
 
-       {view === 'main' && (
-  <div className="menu-container">
+    {view === 'main' && (
+    <div className="menu-container">
 
-    <button
-      className="btn-Acceso btn-control"
-      onClick={() => {
-        setView('ingreso');
-        setBusquedaDni('');
-        setSocioEncontrado(null);
-        setTurno({ dia:'', horario:'' });
-        setMensaje('');
-        setFechaIngreso(new Date().toISOString().split('T')[0]);
-      }}
-    >
-      <CheckCircle size={36} color="#059669"/>
-      <span>Control Acceso</span>
-    </button>
+        <button className="btn-Acceso btn-control" onClick={() => { setView('ingreso');setBusquedaDni(''); setSocioEncontrado(null); setTurno({ dia:'', horario:'' }); setMensaje(''); setFechaIngreso(new Date().toISOString().split('T')[0]); }}>
+        <CheckCircle size={36} color="#059669"/>
+        <span>Control Acceso</span>
+        </button>
 
-  
-    <div className="grid-menu">
-      <button className="btn-menu" onClick={() => setView('menuAgregar')}>
-        <UserPlus size={36} color="var(--primary)"/>
-        <span>Registrar</span>
-      </button>
+        <div className="grid-menu">
+        <button className="btn-menu" onClick={() => setView('menuAgregar')}>
+            <UserPlus size={36} color="var(--primary)"/>
+            <span>Registrar</span>
+        </button>
 
-      <button className="btn-menu" onClick={() => setView('menuEditar')}>
-        <Edit size={36} color="#7c3aed"/>
-        <span>Editar Datos</span>
-      </button>
+        <button className="btn-menu" onClick={() => setView('menuEditar')}>
+            <Edit size={36} color="#7c3aed"/>
+            <span>Editar Datos</span>
+        </button>
 
-      <button className="btn-menu" onClick={() => setView('menuReportes')}>
-        <FileText size={36} color="#64748b"/>
-        <span>Reportes</span>
-      </button>
+        <button className="btn-menu" onClick={() => setView('menuReportes')}>
+            <FileText size={36} color="#64748b"/>
+            <span>Reportes</span>
+        </button>
 
-      <button
-        className="btn-menu"
-        onClick={() => {
-          setView('activos');
-          obtenerActivos();
-        }}
-      >
-        <Users size={36} color="#3b82f6"/>
-        <span>Gente en Pileta</span>
-      </button>
+        <button className="btn-menu" onClick={() => { setView('activos'); obtenerActivos(); }}>
+            <Users size={36} color="#3b82f6"/>
+            <span>Gente en Pileta</span>
+        </button>
     </div>
 
   </div>
@@ -865,7 +848,7 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
                 
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
                     <h2>Personas en el Agua ({listaActivos.length})</h2>
-                    <button onClick={obtenerActivos} style={{background:'none', border:'none', cursor:'pointer', color:'var(--primary)'}}>🔄 Actualizar</button>
+                    
                 </div>
 
                 {listaActivos.length > 0 ? (
