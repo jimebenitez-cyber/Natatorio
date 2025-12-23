@@ -47,7 +47,7 @@ export default function App() {
   const [enviando, setEnviando] = useState(false);
 
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado','Domingo'];
-  const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+  const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00','21:00','22:00'];
 
   // Helper para mostrar Salida (Real o Estimada)
   const getHoraSalida = (ingreso, egreso) => {
