@@ -1,6 +1,6 @@
 //APP.JSX
 import React, { useState, useEffect } from 'react';
-import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText } from 'lucide-react';
+import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText, UserPen, UserStar } from 'lucide-react';
 import './App.css'; 
 
 const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/; //valida que se letra
@@ -425,8 +425,8 @@ export default function App() {
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver al Inicio</button>
                 <h2 style={{marginBottom:'30px'}}>Seleccione el Reporte</h2>
                 <div className="grid-menu">
-                    <button className="btn-menu" onClick={() => { setView('listados'); setListaAsistencia([]); setFiltroListado({fecha:'', horario:''}); setBusquedaRealizada(false); }}><ClipboardList size={36} color="var(--primary)"/> <span>Asistencias por Turno</span></button>
-                    <button className="btn-menu" onClick={() => { setView('buscarHistorial'); setBusquedaDni(''); setHistorialPersonal([]); setAlumnoHistorial(null); }}><CalendarDays size={36} color="#059669"/> <span>Historial de Alumno</span></button>
+                    <button className="btn-menu" onClick={() => { setView('listados'); setListaAsistencia([]); setFiltroListado({fecha:'', horario:''}); setBusquedaRealizada(false); }}><CalendarDays  size={36} color="var(--primary)"/> <span>Historial por fecha</span></button>
+                    <button className="btn-menu" onClick={() => { setView('buscarHistorial'); setBusquedaDni(''); setHistorialPersonal([]); setAlumnoHistorial(null); }}><ClipboardList size={36} color="#059669"/> <span>Historial por DNI</span></button>
                 </div>
             </div>
         )}
@@ -447,8 +447,8 @@ export default function App() {
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
                 <h2 style={{marginBottom:'30px'}}>¿Qué deseas editar?</h2>
                 <div className="grid-menu">
-                    <button className="btn-menu" onClick={() => { setView('buscarAlumno'); setBusquedaDni(''); }}><UserCog size={36} color="#7c3aed"/> <span>Editar Alumno</span></button>
-                    <button className="btn-menu" onClick={() => { setView('buscarProfe'); setBusquedaDni(''); }}><Search size={36} color="#d97706"/> <span>Editar Profesor</span></button>
+                    <button className="btn-menu" onClick={() => { setView('buscarAlumno'); setBusquedaDni(''); }}><UserPen size={36} color="#7c3aed"/> <span>Editar Alumno</span></button>
+                    <button className="btn-menu" onClick={() => { setView('buscarProfe'); setBusquedaDni(''); }}><UserStar size={36} color="#d97706"/> <span>Editar Profesor</span></button>
                 </div>
             </div>
         )}
