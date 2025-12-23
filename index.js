@@ -182,14 +182,25 @@ app.put('/api/profesores/:id', async (req, res) => {
 });
 
 // 6. Horarios Disponibles
-app.get('/api/horarios-disponibles', async (req, res) => {
-    try {
-        const pool = await sql.connect(dbConfig);
-        const result = await pool.request().query('SELECT DISTINCT dia, horario FROM Horarios_Profesores');
-        res.json(result.recordset);
-    } catch (error) {
-        res.status(500).send('Error al obtener horarios');
-    }
+app.get('/api/horarios-disponibles', (req, res) => {
+
+    const dias = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
+
+    const listaHoras = [
+        '08:00','09:00','10:00','11:00','12:00',
+        '13:00','14:00','15:00','16:00','17:00',
+        '18:00','19:00','20:00','21:00','22:00'
+    ];
+
+    const horarios = [];
+
+    dias.forEach(dia => {
+        listaHoras.forEach(horario => {
+            horarios.push({ dia, horario });
+        });
+    });
+
+    res.json(horarios);
 });
 
 // 7. Guardar Asistencia (INGRESO)
@@ -263,7 +274,7 @@ app.get('/api/asistencias/listado', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request()
-            .input('dia', sql.VarChar, dia)
+            .input('fecha', sql.VarChar, dia)
             .input('horario', sql.VarChar, horario)
             .query(`
                 SELECT a.id, a.fecha_registro, a.dia, 
@@ -388,62 +399,7 @@ app.get('/api/siguiente-dni-temporal', async (req, res) => {
         res.status(500).json({ message: 'Error al generar DNI temporal' });
     }
 });
-// --- TAREA AUTOMÁTICA (CRON JOB) ---
-// Se ejecuta cada 5 minutos para cerrar turnos vencidos
-cron.schedule('0 * * * *', async () => {
-    console.log('🔄 Ejecutando cierre automático de turnos...');
-    try {
-        const pool = await sql.connect(dbConfig);
-        
-        // 1. Buscar asistencias de HOY que sigan abiertas (egreso IS NULL)
-        const result = await pool.request().query(`
-            SELECT id, horario_ingreso 
-            FROM Asistencias 
-            WHERE fecha_registro = CAST(GETDATE() AS DATE) 
-            AND horario_egreso IS NULL
-        `);
 
-        const ahora = new Date();
-        const horaActual = ahora.getHours();
-        const minActual = ahora.getMinutes();
-
-        // 2. Revisar uno por uno
-        for (const registro of result.recordset) {
-            const [hStr, mStr] = registro.horario_ingreso.split(':');
-            const hIngreso = parseInt(hStr);
-            
-            // Calculamos la hora de fin (Ingreso + 1 hora)
-            let hFin = hIngreso + 1;
-            
-            // Lógica simple: Si la hora actual es mayor o igual a la hora de fin, CERRAMOS.
-            // (Ej: Entró a las 10, sale a las 11. Si son las 11:05, se cierra).
-            
-            // Ajuste para el cambio de día (si entra a las 23, sale a las 00)
-            if (hFin === 24) hFin = 0; 
-
-            // Verificamos si YA pasó la hora
-            // Condición: (Hora actual > Hora Fin) O (Misma hora pero ya pasaron minutos y no es punto exacto)
-            // Para simplificar: Si hora actual > hora inicio, asumimos que ya pasó la hora de turno completa
-            // O mejor: Si hora actual >= hora fin.
-            
-            const turnoVencido = (horaActual > hFin) || (horaActual === hFin && minActual >= 0);
-
-            if (turnoVencido) {
-                // Formateamos la hora de salida (HH:00)
-                const egresoAutomatico = `${hFin.toString().padStart(2, '0')}:${mStr}`;
-                
-                await pool.request()
-                    .input('id', sql.Int, registro.id)
-                    .input('egreso', sql.VarChar, egresoAutomatico)
-                    .query('UPDATE Asistencias SET horario_egreso = @egreso WHERE id = @id');
-                
-                console.log(`✅ Turno ID ${registro.id} cerrado automáticamente a las ${egresoAutomatico}`);
-            }
-        }
-    } catch (error) {
-        console.error('❌ Error en cron job:', error);
-    }
-});
 // --- INICIAR SERVIDOR ---
 const PORT = 5000;
 app.listen(PORT, async () => {

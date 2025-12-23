@@ -44,9 +44,10 @@ export default function App() {
 
   const [horariosBD, setHorariosBD] = useState([]);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
+  const [enviando,setEnviando]=useState(false);
 
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado','Domingo'];
-  const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+  const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00','13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00','21:00','22:00'];
 
   // Helper para mostrar Salida (Real o Estimada)
   const getHoraSalida = (ingreso, egreso) => {
@@ -76,50 +77,65 @@ export default function App() {
     return `${hora.toString().padStart(2, '0')}:00`;
   };
 
+  const obtenerFechaHoy= () => {
+    const hoy = new Date();
+    return hoy.toISOString().split('T')[0];
+  }
+
   useEffect(() => {
     if (!turno.dia) return;
     setTurno(prev => ({ ...prev, horario: obtenerHoraTurno() }));
   }, [turno.dia]);
 
+  const obtenerDiaSemana = (fechaISO) => {
+  const [year, month, day] = fechaISO.split('-');
+  const fecha = new Date(year, month - 1, day);
 
-  useEffect(() => {
-    // Solo calcula el turno automático si NO estamos en modo "Egreso" (es decir, si no hay asistencia hoy o view no es ingreso)
-    if (fechaIngreso && view === 'ingreso' && socioEncontrado && !asistenciaHoy) {
-        
-        const [year, month, day] = fechaIngreso.split('-').map(Number);
-        const fechaObj = new Date(year, month - 1, day);
-        const indexDia = fechaObj.getDay();
-        const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const nombreDia = nombresDias[indexDia];
-        const abreEseDia = getDiasDisponibles().includes(nombreDia);
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  return dias[fecha.getDay()];
+};
 
-        if (abreEseDia) {
-            let horarioCalculado = '';
-            const horasDisponibles = getHorasPorDia(nombreDia);
-            const hoyString = new Date().toISOString().split('T')[0];
-            
-            if (fechaIngreso === hoyString && horasDisponibles.length > 0) {
-                const ahora = new Date();
-                const minutosActuales = (ahora.getHours() * 60) + ahora.getMinutes();
-                let menorDiferencia = Infinity;
+useEffect(() => {
+  if (socioEncontrado) {
+    // 1. Obtenemos la fecha de hoy en formato YYYY-MM-DD
+    const hoyISO = new Date().toISOString().split('T')[0];
+    
+    // 2. Calculamos el nombre del día usando tu función
+    const nombreDiaActual = obtenerDiaSemana(hoyISO);
+    
+    // 3. Obtenemos la hora con tu lógica de los 45 minutos
+    const horaCalculada = obtenerHoraTurno();
 
-                horasDisponibles.forEach(horaStr => {
-                    const [h, m] = horaStr.split(':').map(Number);
-                    const minutosTurno = (h * 60) + m;
-                    const diferencia = Math.abs(minutosTurno - minutosActuales);
-                    if (diferencia < menorDiferencia) {
-                        menorDiferencia = diferencia;
-                        horarioCalculado = horaStr;
-                    }
-                });
-            }
-            setTurno(prev => ({ ...prev, dia: nombreDia, horario: horarioCalculado }));
-        } else {
-            setTurno({ dia: '', horario: '' });
-            setMensaje(`⚠️ El natatorio no abre los ${nombreDia}s`);
-        }
-    }
-  }, [fechaIngreso, view, horariosBD, socioEncontrado, asistenciaHoy]);
+    // 4. Seteamos el estado del turno (ajusta los nombres si tus estados son diferentes)
+    setTurno({
+      fecha: hoyISO,
+      dia: nombreDiaActual,
+      horario: horaCalculada
+    });
+  }
+}, [socioEncontrado]); // Se ejecuta cada vez que encuentras un socio nuevo
+
+
+useEffect(() => {
+  if (!fechaIngreso) return;
+
+  const dia = obtenerDiaSemana(fechaIngreso);
+
+  setTurno(prev => ({
+    ...prev,
+    dia
+  }));
+}, [fechaIngreso]);
+
+useEffect(() => {
+  if (!turno.dia) return;
+
+  setTurno(prev => ({
+    ...prev,
+    horario: obtenerHoraTurno()
+  }));
+}, [turno.dia]);
+
 
   // --- FUNCIONES API ---
   const asignarDniTemporal = async (tipo) => {
@@ -134,10 +150,8 @@ export default function App() {
             setFormProfesor({ ...formProfesor, dni: data.siguiente.toString() });
         }
         setMensaje(`🔢 Número temporal asignado: ${data.siguiente}`);
-        setTimeout(() => setMensaje(''), 3000);
     } catch (error) {
         setMensaje('❌ Error al conectar con el servidor');
-        setTimeout(() => setMensaje(''), 3000);
     }
   };
 
@@ -148,7 +162,6 @@ export default function App() {
       if (res.ok) {
         setMensaje('🗑️ Alumno eliminado correctamente');
         setFormAlumno({ id:null, dni:'', nombre:'', apellido:'', celular:'', gmail:'' });
-        setTimeout(() => { setMensaje(''); setView('main'); }, 1500);
       } else { setMensaje('Error al eliminar alumno'); }
     } catch { setMensaje('Error de conexión'); }
   };
@@ -160,15 +173,14 @@ export default function App() {
       if (res.ok) {
         setMensaje('🗑️ Profesor eliminado correctamente');
         setFormProfesor({ id:null, nombre:'', apellido:'', dni:'', telefono:'', especialidad:'', horarios:[{dia:'', horario:''}] });
-        setTimeout(() => { setMensaje(''); setView('main'); }, 1500);
       } else { setMensaje('Error al eliminar profesor'); }
     } catch { setMensaje('Error de conexión'); }
   };
 
   const handleGuardarAlumno = async () => {
-    if (!formAlumno.dni || !regexDni.test(formAlumno.dni)) { setMensaje('⚠️ DNI inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
-    if (!formAlumno.nombre || !regexNombre.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
-    if (!formAlumno.apellido || !regexNombre.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formAlumno.dni || !regexDni.test(formAlumno.dni)) { setMensaje('⚠️ DNI inválido.'); return; }
+    if (!formAlumno.nombre || !regexNombre.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); return; }
+    if (!formAlumno.apellido || !regexNombre.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); return; }
 
     const esEdicion = !!formAlumno.id;
     try {
@@ -179,9 +191,8 @@ export default function App() {
         if (res.ok) {
             setMensaje(esEdicion ? '¡Alumno actualizado!' : '¡Alumno registrado!');
             setFormAlumno({id: null, dni:'', nombre:'', apellido:'', celular:'', gmail:''});
-            setTimeout(() => { setMensaje(''); setView('main'); }, 1500);
-        } else { setMensaje(data.message || 'Error al guardar.'); setTimeout(() => setMensaje(''), 3000); }
-    } catch(e) { setMensaje('Error conexión.'); setTimeout(() => setMensaje(''), 3000); }
+        } else { setMensaje(data.message || 'Error al guardar.'); }
+    } catch(e) { setMensaje('Error conexión.');  }
   };
 
   const buscarAlumnoEditar = async () => {
@@ -194,13 +205,13 @@ export default function App() {
               setEsEdicionAlumno(true);
               setView('formAlumno');
               setBusquedaDni(''); 
-          } else { setMensaje('⚠️ Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
-      } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️ Alumno no encontrado.'); }
+      } catch (e) { setMensaje('Error conexión'); }
   };
 
   const handleGuardarProfesor = async () => {
-    if (!formProfesor.dni || !regexDni.test(formProfesor.dni)) { setMensaje('⚠️ DNI inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
-    if (!formProfesor.nombre || !regexNombre.test(formProfesor.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formProfesor.dni || !regexDni.test(formProfesor.dni)) { setMensaje('⚠️ DNI inválido.'); return; }
+    if (!formProfesor.nombre || !regexNombre.test(formProfesor.nombre)) { setMensaje('⚠️ Nombre inválido.');  return; }
     
     const esEdicion = !!formProfesor.id;
     try {
@@ -211,9 +222,8 @@ export default function App() {
       if (res.ok) {
         setMensaje('¡Profesor guardado!');
         setFormProfesor({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
-        setTimeout(() => { setMensaje(''); setView('main'); }, 1500);
-      } else { setMensaje(data.message || 'Error al guardar.'); setTimeout(() => setMensaje(''), 3000); }
-    } catch (e) { setMensaje('Error conexión.'); setTimeout(() => setMensaje(''), 3000); }
+      } else { setMensaje(data.message || 'Error al guardar.'); }
+    } catch (e) { setMensaje('Error conexión.');  }
   };
 
   const buscarProfesor = async () => {
@@ -226,8 +236,8 @@ export default function App() {
               setEsEdicionProfesor(true);
               setView('formProfesor');
               setBusquedaDni('');
-          } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
-      } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️ Profesor no encontrado.');  }
+      } catch (e) { setMensaje('Error conexión'); }
   };
 
   // --- LÓGICA DE INGRESO / EGRESO MEJORADA ---
@@ -256,25 +266,23 @@ export default function App() {
                     setMensaje('¡Alumno verificado!');
                 }
             }
-            setTimeout(() => setMensaje(''), 2000);
+          
         } else { 
             setMensaje('DNI no encontrado.'); 
             setSocioEncontrado(null); 
             setAsistenciaHoy(null);
-            setTimeout(() => setMensaje(''), 3000); 
+           
         }
     } catch(e) { 
         setMensaje('Error conexión'); 
-        setTimeout(() => setMensaje(''), 3000); 
+   
     }
   };
 
   const registrarAsistencia = async () => {
-      if (!turno.dia || !turno.horario) {
-          setMensaje('⚠️ Por favor selecciona un horario válido.');
-          setTimeout(() => setMensaje(''), 3000);
-          return;
-      }
+      if (enviando||!turno.dia || !turno.horario) return;
+        setEnviando(true);
+      
       try {
           const res = await fetch('http://localhost:5000/api/asistencias', {
               method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -296,9 +304,10 @@ export default function App() {
                   setTurno({dia:'', horario:''}); 
                   setFechaIngreso(new Date().toISOString().split('T')[0]); 
                   setView('main'); 
+                  setenviando(false); 
               }, 2000);
-          } else { setMensaje(data.message || 'Error al guardar.'); setTimeout(() => setMensaje(''), 3000); }
-      } catch (error) { setMensaje('Error de conexión.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje(data.message || 'Error al guardar.');  }
+      } catch (error) { setMensaje('Error de conexión.');setenviando(false);  };
   };
 
   const registrarEgreso = async () => {
@@ -337,7 +346,7 @@ export default function App() {
       try {
           const res = await fetch(`http://localhost:5000/api/asistencias/listado?dia=${filtroListado.dia}&horario=${filtroListado.horario}`);
           if(res.ok) { setListaAsistencia(await res.json()); setBusquedaRealizada(true); }
-      } catch (error) { setMensaje('Error al cargar lista'); setTimeout(() => setMensaje(''), 3000); }
+      } catch (error) { setMensaje('Error al cargar lista'); }
   };
 
   const eliminarAsistencia = async (idAsistencia) => {
@@ -347,7 +356,6 @@ export default function App() {
           if(res.ok) {
               setMensaje('🗑️ Registro eliminado correctamente');
               setListaAsistencia(listaAsistencia.filter(item => item.id !== idAsistencia));
-              setTimeout(() => setMensaje(''), 3000);
           } else { setMensaje('Error al eliminar'); }
       } catch (error) { setMensaje('Error de conexión'); }
   };
@@ -356,11 +364,11 @@ export default function App() {
       if(!busquedaDni) return;
       try {
           const resAlumno = await fetch(`http://localhost:5000/api/alumnos/${busquedaDni}`);
-          if(!resAlumno.ok) { setMensaje('⚠️ Alumno no encontrado'); setTimeout(() => setMensaje(''), 3000); return; }
+          if(!resAlumno.ok) { setMensaje('⚠️ Alumno no encontrado'); return; }
           setAlumnoHistorial(await resAlumno.json());
           const resHistorial = await fetch(`http://localhost:5000/api/asistencias/historial/${busquedaDni}`);
           if(resHistorial.ok) { setHistorialPersonal(await resHistorial.json()); }
-      } catch (e) { setMensaje('Error de conexión'); setTimeout(() => setMensaje(''), 3000); }
+      } catch (e) { setMensaje('Error de conexión'); }
   };
 
   // --- VISTAS ---
@@ -375,7 +383,20 @@ export default function App() {
           <button className="btn-theme" onClick={toggleTheme}>{isDarkMode ? <Sun size={28} /> : <Moon size={28} />}</button>
         </div>
 
-        {mensaje && <div className={`alerta ${mensaje.includes('Error') || mensaje.includes('⚠️') || mensaje.includes('No') ? 'error' : 'exito'}`}>{mensaje}</div>}
+        {mensaje && (
+        <div className={`alerta ${mensaje.includes('Error') || mensaje.includes('⚠️') ? 'error' : 'exito'}`}>
+            <span>{mensaje}</span>
+
+            <button
+            onClick={() => setMensaje('')}
+            className="btn-cerrar-alerta"
+            aria-label="Cerrar"
+            >
+            ✖
+            </button>
+        </div>
+)}
+
 
         {view === 'main' && (
           <div className="grid-menu">
@@ -540,7 +561,7 @@ export default function App() {
             }}
         />
 
-        <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label> <div style={{display:'flex', gap:'15px'}}>
+        <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}> Turno:</label> <div style={{display:'flex', gap:'15px'}}>
                                     <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
                                     <select 
                                      className="select-sin-flecha"
