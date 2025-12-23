@@ -117,8 +117,8 @@ body {
 /* --- MENÚ GRANDE 2x2 --- */
 .grid-menu {
   display: grid;
-  grid-template-columns: 1fr 1fr; 
-  gap: 30px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 25px;
 }
 
 .btn-menu {
@@ -356,3 +356,37 @@ tr:hover td {
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(20px); } to { transform: translateY(0); } }
+
+
+.menu-container{
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+
+
+.btn-control{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+
+  background-color: var(--btn-menu-bg);
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  padding: 20px 30px;  
+
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  color: var(--text-main);
+  text-align: center;
+
+  padding: 60px 30px;
+  font-size: 1.4rem;
+}
