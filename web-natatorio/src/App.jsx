@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText } from 'lucide-react';
+import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText ,LogOut} from 'lucide-react';
 import './App.css'; 
 
 const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
@@ -41,6 +41,7 @@ export default function App() {
   const [listaAsistencia, setListaAsistencia] = useState([]);
   const [historialPersonal, setHistorialPersonal] = useState([]);
   const [alumnoHistorial, setAlumnoHistorial] = useState(null);
+const [listaActivos, setListaActivos] = useState([]);
 
   const [horariosBD, setHorariosBD] = useState([]);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
@@ -48,7 +49,8 @@ export default function App() {
 
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado','Domingo'];
   const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00','21:00','22:00'];
-
+// Estado para el Modal de Confirmación
+const [modal, setModal] = useState({ show: false, titulo: '', mensaje: '', accionConfirmar: null });
   // Helper para mostrar Salida (Real o Estimada)
   const getHoraSalida = (ingreso, egreso) => {
     if (egreso) return egreso; 
@@ -81,10 +83,11 @@ export default function App() {
     if (!turno.dia) return;
     setTurno(prev => ({ ...prev, horario: obtenerHoraTurno() }));
   }, [turno.dia]);
+  
 
-
-  useEffect(() => {
-    // Solo calcula el turno automático si NO estamos en modo "Egreso" (es decir, si no hay asistencia hoy o view no es ingreso)
+/*
+useEffect(() => {
+    // Solo calcula turno automático si NO estamos en modo "Egreso"
     if (fechaIngreso && view === 'ingreso' && socioEncontrado && !asistenciaHoy) {
         
         const [year, month, day] = fechaIngreso.split('-').map(Number);
@@ -92,14 +95,19 @@ export default function App() {
         const indexDia = fechaObj.getDay();
         const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
         const nombreDia = nombresDias[indexDia];
-        const abreEseDia = getDiasDisponibles().includes(nombreDia);
+        
+        // --- CAMBIO: Asumimos que abre TODOS los días ---
+        // Si quisieras cerrar los domingos, podrías poner: if (nombreDia !== 'Domingo')
+        const abreEseDia = true; 
 
         if (abreEseDia) {
             let horarioCalculado = '';
-            const horasDisponibles = getHorasPorDia(nombreDia);
+            // --- CAMBIO: Usamos la lista fija de 8 a 22 ---
+            const horasDisponibles = listaHoras; 
             const hoyString = new Date().toISOString().split('T')[0];
             
-            if (fechaIngreso === hoyString && horasDisponibles.length > 0) {
+            // Lógica de autoselección (busca la hora más cercana)
+            if (fechaIngreso === hoyString) {
                 const ahora = new Date();
                 const minutosActuales = (ahora.getHours() * 60) + ahora.getMinutes();
                 let menorDiferencia = Infinity;
@@ -108,20 +116,28 @@ export default function App() {
                     const [h, m] = horaStr.split(':').map(Number);
                     const minutosTurno = (h * 60) + m;
                     const diferencia = Math.abs(minutosTurno - minutosActuales);
-                    if (diferencia < menorDiferencia) {
+                    
+                    // Si la diferencia es menor a 60 min, sugerimos ese horario
+                    if (diferencia < menorDiferencia && diferencia < 60) {
                         menorDiferencia = diferencia;
                         horarioCalculado = horaStr;
                     }
                 });
             }
-            setTurno(prev => ({ ...prev, dia: nombreDia, horario: horarioCalculado }));
+            
+            setTurno(prev => ({ 
+                ...prev, 
+                dia: nombreDia, 
+                horario: horarioCalculado 
+            }));
+
         } else {
             setTurno({ dia: '', horario: '' });
-            setMensaje(`⚠️ El natatorio no abre los ${nombreDia}s`);
+            setMensaje(`⚠️ El natatorio está cerrado los ${nombreDia}s`);
         }
     }
-  }, [fechaIngreso, view, horariosBD, socioEncontrado, asistenciaHoy]);
-
+  }, [fechaIngreso, view, socioEncontrado, asistenciaHoy]); // Quitamos horariosBD de las dependencias
+*/
   // --- FUNCIONES API ---
   const asignarDniTemporal = async (tipo) => {
     try {
@@ -372,6 +388,77 @@ export default function App() {
           if(resHistorial.ok) { setHistorialPersonal(await resHistorial.json()); }
       } catch (e) { setMensaje('Error de conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
+  // Obtener la lista de gente que está en el agua
+  const obtenerActivos = async () => {
+      try {
+          const res = await fetch('http://localhost:5000/api/asistencias/activos');
+          if (res.ok) {
+              setListaActivos(await res.json());
+          }
+      } catch (error) { console.error(error); }
+  };
+
+ // --- NUEVA LÓGICA CON MODAL ---
+
+// 1. Al tocar el botón de la lista, SE ABRE EL MODAL
+const confirmarEgresoIndividual = (id, nombre) => {
+    setModal({
+        show: true,
+        titulo: '¿Registrar Salida?',
+        mensaje: `Vas a registrar el egreso de ${nombre}.`,
+        accionConfirmar: () => ejecutarEgresoReal(id) // Guardamos la función a ejecutar
+    });
+};
+
+// 2. Al tocar el botón rojo de todos, SE ABRE EL MODAL
+const confirmarEgresoMasivo = () => {
+    if(listaActivos.length === 0) return;
+    setModal({
+        show: true,
+        titulo: '⚠️ CIERRE MASIVO',
+        mensaje: `Vas a sacar a ${listaActivos.length} personas del sistema. ¿Estás seguro?`,
+        accionConfirmar: () => ejecutarEgresoMasivoReal()
+    });
+};
+
+// 3. Esta es la función que REALMENTE conecta con la BD (Individual)
+const ejecutarEgresoReal = async (id) => {
+    const ahora = new Date();
+    const horaActual = `${ahora.getHours().toString().padStart(2, '0')}:${ahora.getMinutes().toString().padStart(2, '0')}`;
+    try {
+        const res = await fetch(`http://localhost:5000/api/asistencias/egreso/${id}`, {
+            method: 'PUT', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ horario_egreso: horaActual })
+        });
+        if(res.ok) {
+            setMensaje(`👋 Salida registrada`);
+            obtenerActivos();
+            cerrarModal(); // Cerramos el modal
+            setTimeout(() => setMensaje(''), 2000);
+        }
+    } catch (e) { setMensaje('Error de conexión'); cerrarModal(); }
+};
+
+// 4. Esta es la función que REALMENTE conecta con la BD (Masivo)
+const ejecutarEgresoMasivoReal = async () => {
+    const ahora = new Date();
+    const horaActual = `${ahora.getHours().toString().padStart(2, '0')}:${ahora.getMinutes().toString().padStart(2, '0')}`;
+    try {
+        const res = await fetch('http://localhost:5000/api/asistencias/cerrar-todos', {
+            method: 'PUT', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ horario_egreso: horaActual })
+        });
+        if(res.ok) {
+            setMensaje('✅ Todos han salido.');
+            setListaActivos([]);
+            cerrarModal(); // Cerramos el modal
+            setTimeout(() => setMensaje(''), 4000);
+        }
+    } catch (e) { setMensaje('Error masivo falló'); cerrarModal(); }
+};
+
+// Función auxiliar para cerrar
+const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accionConfirmar: null });
 
   // --- VISTAS ---
   return (
@@ -393,6 +480,10 @@ export default function App() {
             <button className="btn-menu" onClick={() => setView('menuEditar')}><Edit size={36} color="#7c3aed"/><span>Editar Datos</span></button>
             <button className="btn-menu" onClick={() => { setView('ingreso'); setBusquedaDni(''); setSocioEncontrado(null);setTurno({ dia:'', horario:'' });setMensaje('');setFechaIngreso(new Date().toISOString().split('T')[0]); }}><CheckCircle size={36} color="#059669"/><span>Control Acceso</span></button>
             <button className="btn-menu" onClick={() => setView('menuReportes')}><FileText size={36} color="#64748b"/><span>Reportes</span></button>
+            <button className="btn-menu" onClick={() => { setView('activos'); obtenerActivos(); }}>
+    <Users size={36} color="#3b82f6"/>
+    <span>Gente en Pileta</span>
+</button>
           </div>
         )}
 
@@ -684,6 +775,100 @@ export default function App() {
                 ) : busquedaRealizada && <p style={{textAlign:'center', marginTop:'30px', color:'var(--text-muted)'}}>No hay registros para este turno.</p>}
             </div>
         )}
+        {view === 'activos' && (
+            <div>
+                <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
+                
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
+                    <h2>Personas en el Agua ({listaActivos.length})</h2>
+                    <button onClick={obtenerActivos} style={{background:'none', border:'none', cursor:'pointer', color:'var(--primary)'}}>🔄 Actualizar</button>
+                </div>
+
+                {listaActivos.length > 0 ? (
+                    <>
+                        <div style={{maxHeight:'400px', overflowY:'auto', border:'1px solid var(--border)', borderRadius:'12px'}}>
+                            <table style={{width:'100%', borderCollapse:'collapse'}}>
+                                <thead style={{position:'sticky', top:0, background:'var(--bg-card)', zIndex:1}}>
+                                    <tr>
+                                        <th style={{textAlign:'left', padding:'12px'}}>Nombre</th>
+                                        <th style={{textAlign:'left', padding:'12px'}}>Ingreso</th>
+                                        <th style={{textAlign:'center', padding:'12px'}}>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {listaActivos.map((p) => (
+                                        <tr key={p.id} style={{borderBottom:'1px solid var(--border)'}}>
+                                            <td style={{padding:'12px'}}>
+                                                <strong>{p.nombre} {p.apellido}</strong><br/>
+                                                <span style={{fontSize:'0.8rem', opacity:0.7}}>{p.dni}</span>
+                                            </td>
+                                            <td style={{padding:'12px', color:'var(--primary)', fontWeight:'bold'}}>{p.horario_ingreso}</td>
+                                            <td style={{textAlign:'center', padding:'12px'}}>
+                                                <button 
+                                                    onClick={() => confirmarEgresoIndividual(p.id, p.nombre)}                                                    className="btn-primary"
+                                                    style={{padding:'8px 15px', fontSize:'0.9rem', width:'auto', marginTop:0, background:'#eab308', color:'black'}}
+                                                >
+                                                    Salir 👋
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* BOTÓN DE CIERRE MASIVO */}
+                        <div style={{marginTop:'30px', borderTop:'2px dashed var(--border)', paddingTop:'20px'}}>
+                            <p style={{fontSize:'0.9rem', color:'var(--text-muted)', marginBottom:'10px'}}>Zona de Cierre de Turno</p>
+                            <button 
+                                onClick={confirmarEgresoMasivo}
+                                style={{
+                                    width:'100%', 
+                                    padding:'15px', 
+                                    background:'rgba(239, 68, 68, 0.15)', 
+                                    color:'#ef4444', 
+                                    border:'2px solid #ef4444', 
+                                    borderRadius:'12px', 
+                                    fontWeight:'bold',
+                                    cursor:'pointer',
+                                    display:'flex',
+                                    alignItems:'center',
+                                    justifyContent:'center',
+                                    gap:'10px'
+                                }}
+                            >
+                                <LogOut size={24}/> SACAR A TODOS ({listaActivos.length})
+                            </button>
+                        </div>
+                        
+                    </>
+                ) : (
+                    <div style={{textAlign:'center', padding:'50px', color:'var(--text-muted)'}}>
+                        <CheckCircle size={64} style={{opacity:0.3, marginBottom:'20px'}}/>
+                        <p>No hay nadie en la pileta actualmente.</p>
+                    </div>
+                )}
+            </div>
+        )} {modal.show && (
+            <div className="modal-overlay" onClick={cerrarModal}>
+                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                    <h3 style={{color: 'var(--primary)', marginTop:0}}>{modal.titulo}</h3>
+                    <p style={{fontSize:'1.1rem', color:'var(--text-primary)'}}>{modal.mensaje}</p>
+
+                    <div className="modal-actions">
+                        <button onClick={cerrarModal} className="btn-cancelar">Cancelar</button>
+                        <button 
+                            onClick={modal.accionConfirmar} 
+                            className="btn-primary" 
+                            style={{width:'auto', marginTop:0}}
+                        >
+                            Confirmar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+        
       </div>
     </div>
   );

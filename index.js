@@ -390,6 +390,47 @@ app.get('/api/siguiente-dni-temporal', async (req, res) => {
         res.status(500).json({ message: 'Error al generar DNI temporal' });
     }
 });
+// --- NUEVO: LISTAR SOLO LOS QUE ESTÁN ADENTRO (ACTIVOS) ---
+app.get('/api/asistencias/activos', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request()
+            .query(`
+                SELECT a.id, a.fecha_registro, a.horario_ingreso, al.nombre, al.apellido, al.dni
+                FROM Asistencias a
+                INNER JOIN Alumnos al ON a.alumno_dni = al.dni
+                WHERE a.fecha_registro = CAST(GETDATE() AS DATE) 
+                AND a.horario_egreso IS NULL
+                ORDER BY a.horario_ingreso DESC
+            `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Error al obtener activos');
+    }
+});
+
+// --- NUEVO: EGRESO MASIVO (CERRAR TODOS LOS TURNOS) ---
+app.put('/api/asistencias/cerrar-todos', async (req, res) => {
+    try {
+        const { horario_egreso } = req.body;
+        const pool = await sql.connect(dbConfig);
+        
+        await pool.request()
+            .input('egreso', sql.VarChar, horario_egreso)
+            .query(`
+                UPDATE Asistencias 
+                SET horario_egreso = @egreso 
+                WHERE fecha_registro = CAST(GETDATE() AS DATE) 
+                AND horario_egreso IS NULL
+            `);
+
+        res.json({ message: 'Todos los turnos cerrados correctamente' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al cerrar turnos' });
+    }
+});
 // --- TAREA AUTOMÁTICA (CRON JOB) ---
 // Se ejecuta cada 5 minutos para cerrar turnos vencidos
 cron.schedule('0 * * * *', async () => {
