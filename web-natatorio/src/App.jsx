@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText, UserPen, UserStar, LogOut} from 'lucide-react';
 import './App.css'; 
 
-const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/; //valida que se letra
+const regexTexto = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/; //valida que se letra
 const regexDni = /^\d+$/; //valida que sea numero 
 
 const diasReporte = ['Lunes','Martes','Miércoles','Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -232,14 +232,17 @@ const handleGuardarAlumno = async () => {
               setEsEdicionAlumno(true);
               setView('formAlumno');
               setBusquedaDni(''); 
+                if (!formAlumno.dni || !regexDni.test(formAlumno.dni)) { setMensaje('⚠️ DNI inválido.'); return; }
+                if (!formAlumno.nombre || !regexTexto.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); return; }
+                if (!formAlumno.apellido || !regexTexto.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); return; }
           } else { setMensaje('⚠️ Alumno no encontrado.'); }
       } catch (e) { setMensaje('Error conexión'); }
   };
 
-const handleGuardarProfesor = async () => {
-    // Validaciones
-    if (!formProfesor.dni || !regexDni.test(formProfesor.dni)) { setMensaje('⚠️ DNI inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
-    if (!formProfesor.nombre || !regexNombre.test(formProfesor.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+  const handleGuardarProfesor = async () => {
+    if (!formProfesor.dni || !regexDni.test(formProfesor.dni)) { setMensaje('⚠️ DNI inválido.'); return; }
+    if (!formProfesor.nombre || !regexTexto.test(formProfesor.nombre)) { setMensaje('⚠️ Nombre inválido.');  return; }
+    if (!formProfesor.apellido || !regexTexto.test(formProfesor.apellido)) { setMensaje('⚠️ Apellido inválido.');  return; }
     
     const esEdicion = !!formProfesor.id;
     
