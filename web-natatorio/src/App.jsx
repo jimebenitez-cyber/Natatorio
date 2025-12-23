@@ -552,8 +552,10 @@ export default function App() {
 
         <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label> <div style={{display:'flex', gap:'15px'}}>
                                     <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
+<<<<<<< HEAD
                                     <select className='select-sin-flecha' value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
                                         <option value={turno.horario}>{turno.horario || 'Horario...'}</option>
+
                                     </select>
                                 </div>
                                 {fechaIngreso && !turno.dia && <p style={{color:'#ef4444', fontSize:'0.9rem', marginTop:'5px'}}>* No hay turnos disponibles.</p>}
