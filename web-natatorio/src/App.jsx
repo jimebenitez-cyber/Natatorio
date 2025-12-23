@@ -42,6 +42,7 @@ export default function App() {
 
   // Estados Listado y Historial
   const [filtroListado, setFiltroListado] = useState({ dia: '', horario: '' });
+ const [filtroReporteFecha, setFiltroReporteFecha] = useState({ fecha: '', horario: '' });
   const [listaAsistencia, setListaAsistencia] = useState([]);
   const [historialPersonal, setHistorialPersonal] = useState([]);
   const [alumnoHistorial, setAlumnoHistorial] = useState(null);
@@ -346,6 +347,7 @@ export default function App() {
     }
   };
 
+//listado por dni
   const verListado = async () => {
       if(!filtroListado.fecha || !filtroListado.horario) return;
       try {
@@ -354,6 +356,23 @@ export default function App() {
           if(res.ok) { setListaAsistencia(await res.json()); setBusquedaRealizada(true); }
       } catch (error) { setMensaje('Error al cargar lista'); setTimeout(() => setMensaje(''), 3000); }
   };
+
+//listado por fecha
+    const verListadoPorFecha = async () => {
+    if (!filtroReporteFecha.fecha || !filtroReporteFecha.horario) return;
+
+    try {
+        const res = await fetch(`http://localhost:5000/api/asistencias/listado-por-fecha?fecha=${filtroReporteFecha.fecha}&horario=${filtroReporteFecha.horario}`);
+
+        if (res.ok) {
+        setListaAsistencia(await res.json());
+        setBusquedaRealizada(true);
+        }
+    } catch (error) {
+        setMensaje('Error al cargar lista');
+        setTimeout(() => setMensaje(''), 3000);
+    }
+    };
 
   const eliminarAsistencia = async (idAsistencia) => {
       if(!window.confirm('¿Seguro que quieres quitar a esta persona de la lista?')) return;
@@ -530,6 +549,7 @@ export default function App() {
                             <div style={{textAlign:'center', marginTop:'20px'}}>
                                 <p style={{color:'#ef4444', fontWeight:'bold'}}>Este alumno ya completó su turno hoy.</p>
                                 <p>Ingreso: {asistenciaHoy.horario_ingreso} - Egreso: {asistenciaHoy.horario_egreso}</p>
+                                 
                             </div>
                         ) : (
                             // CASO C: NO VINO -> MOSTRAR INGRESO
@@ -557,6 +577,7 @@ export default function App() {
 
         <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label> <div style={{display:'flex', gap:'15px'}}>
                                     <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
+
 
                                     <select className='select-sin-flecha' value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
                                         <option value={turno.horario}>{turno.horario || 'Horario...'}</option>
@@ -628,17 +649,14 @@ export default function App() {
                 
                 {/* Filtros */}
                 <div style={{display:'flex', gap:'15px', marginTop:'20px', alignItems:'center'}}>
-                    <select value={filtroListado.dia} onChange={e=>{setFiltroListado({...filtroListado, dia:e.target.value, horario:''}); setBusquedaRealizada(false);}} style={{marginBottom:0}}>
-                    <option value="">Día...</option>{getDiasDisponibles().map(d=><option key={d} value={d}>{d}</option>)}</select>
-                    
-                    <select value={filtroListado.horario} onChange={e=>{setFiltroListado({...filtroListado, horario:e.target.value}); setBusquedaRealizada(false);}} disabled={!filtroListado.dia} style={{marginBottom:0}}>
+                    <input type="date" value={filtroReporteFecha.fecha} onChange={e => {setFiltroReporteFecha({...filtroReporteFecha,fecha: e.target.value});setBusquedaRealizada(false);}}style={{ marginBottom: 0 }}/>
+                    <select value={filtroReporteFecha.horario} onChange={e => { setFiltroReporteFecha({   ...filtroReporteFecha,   horario: e.target.value });  setBusquedaRealizada(false);}}style={{ marginBottom: 0 }}>
                         <option value="">Hora...</option>
-                        {getHorasPorDia(filtroListado.dia).map(h=><option key={h} value={h}>{h}</option>)}
-                    </select>
-                    
-                    <button onClick={verListado} className="btn-primary" style={{marginTop:0, width:'auto'}}>Ver</button>
+                        {horasReporte.map(h => (<option key={h} value={h}>{h}</option>))}</select>
+
+                    <button onClick={verListadoPorFecha} className="btn-primary"style={{ marginTop: 0, width: 'auto' }}> Ver</button>
                 </div>
-                     
+                    
 
                 {/* Tabla */}
                 {listaAsistencia.length > 0 ? (

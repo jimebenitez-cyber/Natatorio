@@ -212,6 +212,7 @@ app.post('/api/asistencias', async (req, res) => {
     }
 });
 
+// 8. Listado Asistencia 
 // --- NUEVO: VERIFICAR SI EL ALUMNO ESTÁ HOY ---
 app.get('/api/asistencias/estado-hoy/:dni', async (req, res) => {
     try {
@@ -259,11 +260,11 @@ app.put('/api/asistencias/egreso/:id', async (req, res) => {
 
 // 8. Listado Asistencia (ACTUALIZADO CON EGRESO)
 app.get('/api/asistencias/listado', async (req, res) => {
-    const { dia, horario } = req.query; 
-    try {
+    const { dia, horario } = req.query;
+    try {   
         const pool = await sql.connect(dbConfig);
         const result = await pool.request()
-            .input('fecha', sql.VarChar, dia)
+            .input('dia', sql.VarChar, dia)
             .input('horario', sql.VarChar, horario)
             .query(`
                 SELECT a.id, a.fecha_registro, a.dia, 
@@ -282,6 +283,40 @@ app.get('/api/asistencias/listado', async (req, res) => {
         res.status(500).send('Error al obtener listado');
     }
 });
+//listado por fecha
+// LISTADO DE ASISTENCIAS POR FECHA + HORARIO
+app.get('/api/asistencias/listado-por-fecha', async (req, res) => {
+    const { fecha, horario } = req.query;
+
+    if (!fecha || !horario) {
+        return res.status(400).json({ message: 'Fecha y horario requeridos' });
+    }
+
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request()
+            .input('fecha', sql.Date, fecha)
+            .input('horario', sql.VarChar, horario)
+            .query(`
+                SELECT  a.id, a.alumno_dni, a.dia, a.horario_ingreso,a.horario_egreso,
+                    a.fecha_registro, al.nombre,al.apellido
+                FROM Asistencias a
+                JOIN Alumnos al ON al.dni = a.alumno_dni
+                WHERE 
+                    CAST(a.fecha_registro AS DATE) = @fecha
+                    AND a.horario_ingreso = @horario
+                ORDER BY al.apellido, al.nombre
+            `);
+
+        res.json(result.recordset);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al obtener el listado' });
+    }
+});
+
+
 
 // 9. Editar Alumno
 app.put('/api/alumnos/:id', async (req, res) => {
@@ -388,7 +423,62 @@ app.get('/api/siguiente-dni-temporal', async (req, res) => {
         res.status(500).json({ message: 'Error al generar DNI temporal' });
     }
 });
+// --- TAREA AUTOMÁTICA (CRON JOB) ---
+// Se ejecuta cada 5 minutos para cerrar turnos vencidos
+cron.schedule('0 * * * *', async () => {
+    console.log('🔄 Ejecutando cierre automático de turnos...');
+    try {
+        const pool = await sql.connect(dbConfig);
+        
+        // 1. Buscar asistencias de HOY que sigan abiertas (egreso IS NULL)
+        const result = await pool.request().query(`
+            SELECT id, horario_ingreso 
+            FROM Asistencias 
+            WHERE fecha_registro = CAST(GETDATE() AS DATE) 
+            AND horario_egreso IS NULL
+        `);
 
+        const ahora = new Date();
+        const horaActual = ahora.getHours();
+        const minActual = ahora.getMinutes();
+
+        // 2. Revisar uno por uno
+        for (const registro of result.recordset) {
+            const [hStr, mStr] = registro.horario_ingreso.split(':');
+            const hIngreso = parseInt(hStr);
+            
+            // Calculamos la hora de fin (Ingreso + 1 hora)
+            let hFin = hIngreso + 1;
+            
+            // Lógica simple: Si la hora actual es mayor o igual a la hora de fin, CERRAMOS.
+            // (Ej: Entró a las 10, sale a las 11. Si son las 11:05, se cierra).
+            
+            // Ajuste para el cambio de día (si entra a las 23, sale a las 00)
+            if (hFin === 24) hFin = 0; 
+
+            // Verificamos si YA pasó la hora
+            // Condición: (Hora actual > Hora Fin) O (Misma hora pero ya pasaron minutos y no es punto exacto)
+            // Para simplificar: Si hora actual > hora inicio, asumimos que ya pasó la hora de turno completa
+            // O mejor: Si hora actual >= hora fin.
+            
+            const turnoVencido = (horaActual > hFin) || (horaActual === hFin && minActual >= 0);
+
+            if (turnoVencido) {
+                // Formateamos la hora de salida (HH:00)
+                const egresoAutomatico = `${hFin.toString().padStart(2, '0')}:${mStr}`;
+                
+                await pool.request()
+                    .input('id', sql.Int, registro.id)
+                    .input('egreso', sql.VarChar, egresoAutomatico)
+                    .query('UPDATE Asistencias SET horario_egreso = @egreso WHERE id = @id');
+                
+                console.log(`✅ Turno ID ${registro.id} cerrado automáticamente a las ${egresoAutomatico}`);
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error en cron job:', error);
+    }
+});
 // --- INICIAR SERVIDOR ---
 const PORT = 5000;
 app.listen(PORT, async () => {

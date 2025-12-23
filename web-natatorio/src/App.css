@@ -278,7 +278,6 @@ tr:hover td {
 /* Extra: por si el navegador insiste */
 .select-sin-flecha::-ms-expand {
   display: none;
-
 }
 
 /* Extra: por si el navegador insiste */
