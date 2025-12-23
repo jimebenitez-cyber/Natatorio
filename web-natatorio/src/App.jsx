@@ -41,16 +41,17 @@ export default function App() {
   const [fechaIngreso, setFechaIngreso] = useState(new Date().toISOString().split('T')[0]);
 
   // Estados Listado y Historial
-  const [filtroListado, setFiltroListado] = useState({ fecha: '', horario: '' });
+  const [filtroListado, setFiltroListado] = useState({ dia: '', horario: '' });
   const [listaAsistencia, setListaAsistencia] = useState([]);
   const [historialPersonal, setHistorialPersonal] = useState([]);
   const [alumnoHistorial, setAlumnoHistorial] = useState(null);
 
   const [horariosBD, setHorariosBD] = useState([]);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
+  const [enviando, setEnviando] = useState(false);
 
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado','Domingo'];
-  const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+  const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00','21:00','22:00'];
 
   // Helper para mostrar Salida (Real o Estimada)
   const getHoraSalida = (ingreso, egreso) => {
@@ -230,7 +231,7 @@ export default function App() {
               setEsEdicionProfesor(true);
               setView('formProfesor');
               setBusquedaDni('');
-          } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 4000); }
       } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
@@ -260,7 +261,7 @@ export default function App() {
                     setMensaje('¡Alumno verificado!');
                 }
             }
-            setTimeout(() => setMensaje(''), 2000);
+            setTimeout(() => setMensaje(''), 7000);
         } else { 
             setMensaje('DNI no encontrado.'); 
             setSocioEncontrado(null); 
@@ -274,11 +275,11 @@ export default function App() {
   };
 
   const registrarAsistencia = async () => {
-      if (!turno.dia || !turno.horario) {
-          setMensaje('⚠️ Por favor selecciona un horario válido.');
-          setTimeout(() => setMensaje(''), 3000);
-          return;
-      }
+      // Si ya está enviando o faltan datos, no hace nada
+      if (enviando || !turno.dia || !turno.horario) return;
+
+      setEnviando(true); // 🔒 BLOQUEAMOS EL BOTÓN
+
       try {
           const res = await fetch('http://localhost:5000/api/asistencias', {
               method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -300,9 +301,18 @@ export default function App() {
                   setTurno({dia:'', horario:''}); 
                   setFechaIngreso(new Date().toISOString().split('T')[0]); 
                   setView('main'); 
+                  setEnviando(false); // 🔓 DESBLOQUEAMOS AL TERMINAR
               }, 2000);
-          } else { setMensaje(data.message || 'Error al guardar.'); setTimeout(() => setMensaje(''), 3000); }
-      } catch (error) { setMensaje('Error de conexión.'); setTimeout(() => setMensaje(''), 3000); }
+          } else { 
+              setMensaje(data.message || 'Error al guardar.'); 
+              setEnviando(false); // 🔓 DESBLOQUEAR SI HUBO ERROR
+              setTimeout(() => setMensaje(''), 3000); 
+          }
+      } catch (error) { 
+          setMensaje('Error de conexión.'); 
+          setEnviando(false); // 🔓 DESBLOQUEAR SI HUBO ERROR
+          setTimeout(() => setMensaje(''), 4000); 
+      }
   };
 
   const registrarEgreso = async () => {
@@ -547,12 +557,10 @@ export default function App() {
 
         <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label> <div style={{display:'flex', gap:'15px'}}>
                                     <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
-                                    <select 
-                                     className="select-sin-flecha"
-                                     value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
-                                        <option value={turno.horario}>{turno.horario || 'Horario...'}
-                                        </option>
-                                        
+
+                                    <select className='select-sin-flecha' value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
+                                        <option value={turno.horario}>{turno.horario || 'Horario...'}</option>
+
                                     </select>
                                 </div>
                                 {fechaIngreso && !turno.dia && <p style={{color:'#ef4444', fontSize:'0.9rem', marginTop:'5px'}}>* No hay turnos disponibles.</p>}
@@ -620,20 +628,22 @@ export default function App() {
                 
                 {/* Filtros */}
                 <div style={{display:'flex', gap:'15px', marginTop:'20px', alignItems:'center'}}>
-                    <input type="date" value={filtroListado.fecha} onChange={e => {setFiltroListado({ fecha: e.target.value, horario: '' });setBusquedaRealizada(false);}} />
-                    <select value={filtroListado.horario} onChange={e=>{setFiltroListado({...filtroListado, horario:e.target.value}); setBusquedaRealizada(false);}} disabled={!filtroListado.fecha}>
+                    <select value={filtroListado.dia} onChange={e=>{setFiltroListado({...filtroListado, dia:e.target.value, horario:''}); setBusquedaRealizada(false);}} style={{marginBottom:0}}>
+                    <option value="">Día...</option>{getDiasDisponibles().map(d=><option key={d} value={d}>{d}</option>)}</select>
+                    
+                    <select value={filtroListado.horario} onChange={e=>{setFiltroListado({...filtroListado, horario:e.target.value}); setBusquedaRealizada(false);}} disabled={!filtroListado.dia} style={{marginBottom:0}}>
                         <option value="">Hora...</option>
-
-                        {getHorasPorDia(filtroListado.dia).map(h=>(<option key={h} value={h}>{h}</option>))}
-                        {horasReporte.map(h=>(<option key={h} value={h}>{h}</option>))}
-                        </select>
-                    <button onClick={verListado} className="btn-primary" style={{width: 'auto',marginTop: 0, marginBottom: 20}}>Ver</button>
+                        {getHorasPorDia(filtroListado.dia).map(h=><option key={h} value={h}>{h}</option>)}
+                    </select>
+                    
+                    <button onClick={verListado} className="btn-primary" style={{marginTop:0, width:'auto'}}>Ver</button>
                 </div>
+                     
 
                 {/* Tabla */}
                 {listaAsistencia.length > 0 ? (
                     <table>
-                        <thead>
+                      <thead>
                             <tr>
                                 <th>Fecha</th> 
                                 <th>Ingreso</th> {/* Antes Turno */}
@@ -684,4 +694,4 @@ export default function App() {
       </div>
     </div>
   );
-}
+}  
