@@ -223,6 +223,7 @@ app.post('/api/asistencias', async (req, res) => {
     }
 });
 
+// 8. Listado Asistencia 
 // --- NUEVO: VERIFICAR SI EL ALUMNO ESTÁ HOY ---
 app.get('/api/asistencias/estado-hoy/:dni', async (req, res) => {
     try {
@@ -270,8 +271,8 @@ app.put('/api/asistencias/egreso/:id', async (req, res) => {
 
 // 8. Listado Asistencia (ACTUALIZADO CON EGRESO)
 app.get('/api/asistencias/listado', async (req, res) => {
-    const { dia, horario } = req.query; 
-    try {
+    const { dia, horario } = req.query;
+    try {   
         const pool = await sql.connect(dbConfig);
         const result = await pool.request()
             .input('fecha', sql.VarChar, dia)
@@ -293,6 +294,40 @@ app.get('/api/asistencias/listado', async (req, res) => {
         res.status(500).send('Error al obtener listado');
     }
 });
+//listado por fecha
+// LISTADO DE ASISTENCIAS POR FECHA + HORARIO
+app.get('/api/asistencias/listado-por-fecha', async (req, res) => {
+    const { fecha, horario } = req.query;
+
+    if (!fecha || !horario) {
+        return res.status(400).json({ message: 'Fecha y horario requeridos' });
+    }
+
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request()
+            .input('fecha', sql.Date, fecha)
+            .input('horario', sql.VarChar, horario)
+            .query(`
+                SELECT  a.id, a.alumno_dni, a.dia, a.horario_ingreso,a.horario_egreso,
+                    a.fecha_registro, al.nombre,al.apellido
+                FROM Asistencias a
+                JOIN Alumnos al ON al.dni = a.alumno_dni
+                WHERE 
+                    CAST(a.fecha_registro AS DATE) = @fecha
+                    AND a.horario_ingreso = @horario
+                ORDER BY al.apellido, al.nombre
+            `);
+
+        res.json(result.recordset);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al obtener el listado' });
+    }
+});
+
+
 
 // 9. Editar Alumno
 app.put('/api/alumnos/:id', async (req, res) => {

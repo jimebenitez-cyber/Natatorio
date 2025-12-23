@@ -152,10 +152,23 @@ ALTER TABLE [dbo].[Clases_Actividades]  WITH CHECK ADD CHECK  (([cupo_maximo]>(0
 GO*/
 
 select * from Alumnos 
-
 select * from Profesores
 
 ALTER TABLE Alumnos
 ADD CONSTRAINT UQ_Alumnos_DNI UNIQUE (dni);
 
+SELECT *
+FROM asistencias
+WHERE CONVERT(date, fecha_registro) = '2025-12-22'
+SELECT *
+FROM Asistencias
+WHERE LEFT(horario,5) = '18:00'
 
+
+SELECT a.id, a.fecha_registro, a.dia, a.horario, al.nombre, al.apellido, al.dni
+                FROM Asistencias a
+                INNER JOIN Alumnos al ON a.alumno_dni = al.dni
+                WHERE CONVERT(date, a.fecha_registro) = '2025-12-22'
+                AND horario = '11:00'
+     
+                ORDER BY a.fecha_registro DESC

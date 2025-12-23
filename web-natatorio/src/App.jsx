@@ -1,9 +1,13 @@
+//APP.JSX
 import React, { useState, useEffect } from 'react';
-import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText } from 'lucide-react';
+import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText, UserPen, UserStar } from 'lucide-react';
 import './App.css'; 
 
-const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
-const regexDni = /^\d+$/;
+const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/; //valida que se letra
+const regexDni = /^\d+$/; //valida que sea numero 
+
+const diasReporte = ['Lunes','Martes','Miércoles','Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const horasReporte = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'];
 
 export default function App() {
   const [view, setView] = useState('main');
@@ -38,6 +42,7 @@ export default function App() {
 
   // Estados Listado y Historial
   const [filtroListado, setFiltroListado] = useState({ dia: '', horario: '' });
+ const [filtroReporteFecha, setFiltroReporteFecha] = useState({ fecha: '', horario: '' });
   const [listaAsistencia, setListaAsistencia] = useState([]);
   const [historialPersonal, setHistorialPersonal] = useState([]);
   const [alumnoHistorial, setAlumnoHistorial] = useState(null);
@@ -236,8 +241,8 @@ useEffect(() => {
               setEsEdicionProfesor(true);
               setView('formProfesor');
               setBusquedaDni('');
-          } else { setMensaje('⚠️ Profesor no encontrado.');  }
-      } catch (e) { setMensaje('Error conexión'); }
+          } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 4000); }
+      } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
   };
 
   // --- LÓGICA DE INGRESO / EGRESO MEJORADA ---
@@ -266,7 +271,7 @@ useEffect(() => {
                     setMensaje('¡Alumno verificado!');
                 }
             }
-          
+            setTimeout(() => setMensaje(''), 10000);
         } else { 
             setMensaje('DNI no encontrado.'); 
             setSocioEncontrado(null); 
@@ -304,10 +309,18 @@ useEffect(() => {
                   setTurno({dia:'', horario:''}); 
                   setFechaIngreso(new Date().toISOString().split('T')[0]); 
                   setView('main'); 
-                  setenviando(false); 
+                  setEnviando(false); // 🔓 DESBLOQUEAMOS AL TERMINAR
               }, 2000);
-          } else { setMensaje(data.message || 'Error al guardar.');  }
-      } catch (error) { setMensaje('Error de conexión.');setenviando(false);  };
+          } else { 
+              setMensaje(data.message || 'Error al guardar.'); 
+              setEnviando(false); // 🔓 DESBLOQUEAR SI HUBO ERROR
+              setTimeout(() => setMensaje(''), 3000); 
+          }
+      } catch (error) { 
+          setMensaje('Error de conexión.'); 
+          setEnviando(false); // 🔓 DESBLOQUEAR SI HUBO ERROR
+          setTimeout(() => setMensaje(''), 4000); 
+      }
   };
 
   const registrarEgreso = async () => {
@@ -341,13 +354,32 @@ useEffect(() => {
     }
   };
 
+//listado por dni
   const verListado = async () => {
-      if(!filtroListado.dia || !filtroListado.horario) return;
+      if(!filtroListado.fecha || !filtroListado.horario) return;
       try {
-          const res = await fetch(`http://localhost:5000/api/asistencias/listado?dia=${filtroListado.dia}&horario=${filtroListado.horario}`);
+          const res = await fetch(`http://localhost:5000/api/asistencias/listado?fecha=${filtroListado.fecha}&horario=${filtroListado.horario}`);
+          console.log(res)
           if(res.ok) { setListaAsistencia(await res.json()); setBusquedaRealizada(true); }
       } catch (error) { setMensaje('Error al cargar lista'); }
   };
+
+//listado por fecha
+    const verListadoPorFecha = async () => {
+    if (!filtroReporteFecha.fecha || !filtroReporteFecha.horario) return;
+
+    try {
+        const res = await fetch(`http://localhost:5000/api/asistencias/listado-por-fecha?fecha=${filtroReporteFecha.fecha}&horario=${filtroReporteFecha.horario}`);
+
+        if (res.ok) {
+        setListaAsistencia(await res.json());
+        setBusquedaRealizada(true);
+        }
+    } catch (error) {
+        setMensaje('Error al cargar lista');
+        setTimeout(() => setMensaje(''), 3000);
+    }
+    };
 
   const eliminarAsistencia = async (idAsistencia) => {
       if(!window.confirm('¿Seguro que quieres quitar a esta persona de la lista?')) return;
@@ -412,8 +444,8 @@ useEffect(() => {
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver al Inicio</button>
                 <h2 style={{marginBottom:'30px'}}>Seleccione el Reporte</h2>
                 <div className="grid-menu">
-                    <button className="btn-menu" onClick={() => { setView('listados'); setListaAsistencia([]); setFiltroListado({dia:'', horario:''}); setBusquedaRealizada(false); }}><ClipboardList size={36} color="var(--primary)"/> <span>Asistencias por Turno</span></button>
-                    <button className="btn-menu" onClick={() => { setView('buscarHistorial'); setBusquedaDni(''); setHistorialPersonal([]); setAlumnoHistorial(null); }}><CalendarDays size={36} color="#059669"/> <span>Historial de Alumno</span></button>
+                    <button className="btn-menu" onClick={() => { setView('listados'); setListaAsistencia([]); setFiltroListado({fecha:'', horario:''}); setBusquedaRealizada(false); }}><CalendarDays  size={36} color="var(--primary)"/> <span>Historial por fecha</span></button>
+                    <button className="btn-menu" onClick={() => { setView('buscarHistorial'); setBusquedaDni(''); setHistorialPersonal([]); setAlumnoHistorial(null); }}><ClipboardList size={36} color="#059669"/> <span>Historial por DNI</span></button>
                 </div>
             </div>
         )}
@@ -434,8 +466,8 @@ useEffect(() => {
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
                 <h2 style={{marginBottom:'30px'}}>¿Qué deseas editar?</h2>
                 <div className="grid-menu">
-                    <button className="btn-menu" onClick={() => { setView('buscarAlumno'); setBusquedaDni(''); }}><UserCog size={36} color="#7c3aed"/> <span>Editar Alumno</span></button>
-                    <button className="btn-menu" onClick={() => { setView('buscarProfe'); setBusquedaDni(''); }}><Search size={36} color="#d97706"/> <span>Editar Profesor</span></button>
+                    <button className="btn-menu" onClick={() => { setView('buscarAlumno'); setBusquedaDni(''); }}><UserPen size={36} color="#7c3aed"/> <span>Editar Alumno</span></button>
+                    <button className="btn-menu" onClick={() => { setView('buscarProfe'); setBusquedaDni(''); }}><UserStar size={36} color="#d97706"/> <span>Editar Profesor</span></button>
                 </div>
             </div>
         )}
@@ -536,6 +568,7 @@ useEffect(() => {
                             <div style={{textAlign:'center', marginTop:'20px'}}>
                                 <p style={{color:'#ef4444', fontWeight:'bold'}}>Este alumno ya completó su turno hoy.</p>
                                 <p>Ingreso: {asistenciaHoy.horario_ingreso} - Egreso: {asistenciaHoy.horario_egreso}</p>
+                                 
                             </div>
                         ) : (
                             // CASO C: NO VINO -> MOSTRAR INGRESO
@@ -563,12 +596,11 @@ useEffect(() => {
 
         <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}> Turno:</label> <div style={{display:'flex', gap:'15px'}}>
                                     <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
-                                    <select 
-                                     className="select-sin-flecha"
-                                     value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
-                                        <option value={turno.horario}>{turno.horario || 'Horario...'}
-                                        </option>
-                                        
+
+
+                                    <select className='select-sin-flecha' value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
+                                        <option value={turno.horario}>{turno.horario || 'Horario...'}</option>
+
                                     </select>
                                 </div>
                                 {fechaIngreso && !turno.dia && <p style={{color:'#ef4444', fontSize:'0.9rem', marginTop:'5px'}}>* No hay turnos disponibles.</p>}
@@ -636,20 +668,19 @@ useEffect(() => {
                 
                 {/* Filtros */}
                 <div style={{display:'flex', gap:'15px', marginTop:'20px', alignItems:'center'}}>
-                    <select value={filtroListado.dia} onChange={e=>{setFiltroListado({...filtroListado, dia:e.target.value, horario:''}); setBusquedaRealizada(false);}} style={{marginBottom:0}}><option value="">Día...</option>{getDiasDisponibles().map(d=><option key={d} value={d}>{d}</option>)}</select>
-                    
-                    <select value={filtroListado.horario} onChange={e=>{setFiltroListado({...filtroListado, horario:e.target.value}); setBusquedaRealizada(false);}} disabled={!filtroListado.dia} style={{marginBottom:0}}>
+                    <input type="date" value={filtroReporteFecha.fecha} onChange={e => {setFiltroReporteFecha({...filtroReporteFecha,fecha: e.target.value});setBusquedaRealizada(false);}}style={{ marginBottom: 0 }}/>
+                    <select value={filtroReporteFecha.horario} onChange={e => { setFiltroReporteFecha({   ...filtroReporteFecha,   horario: e.target.value });  setBusquedaRealizada(false);}}style={{ marginBottom: 0 }}>
                         <option value="">Hora...</option>
-                        {getHorasPorDia(filtroListado.dia).map(h=><option key={h} value={h}>{h}</option>)}
-                    </select>
-                    
-                    <button onClick={verListado} className="btn-primary" style={{marginTop:0, width:'auto'}}>Ver</button>
+                        {horasReporte.map(h => (<option key={h} value={h}>{h}</option>))}</select>
+
+                    <button onClick={verListadoPorFecha} className="btn-primary"style={{ marginTop: 0, width: 'auto' }}> Ver</button>
                 </div>
+                    
 
                 {/* Tabla */}
                 {listaAsistencia.length > 0 ? (
                     <table>
-                        <thead>
+                      <thead>
                             <tr>
                                 <th>Fecha</th> 
                                 <th>Ingreso</th> {/* Antes Turno */}
@@ -700,4 +731,4 @@ useEffect(() => {
       </div>
     </div>
   );
-}
+}  
