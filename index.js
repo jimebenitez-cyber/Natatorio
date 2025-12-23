@@ -373,16 +373,18 @@ app.delete('/api/profesores/:id', async (req, res) => {
 app.get('/api/siguiente-dni-temporal', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
-        let dni = 1;
+        let contador=1;
         let existe = true;
-        while (dni <= 1000000 && existe) {
+        let dniGenerado = '';
+        while (contador <= 1000000 && existe) {
+            dniGenerado = '00' + contador.toString();
             const result = await pool.request()
-                .input('dni', sql.VarChar, dni.toString())
+                .input('dni', sql.VarChar, dniGenerado)
                 .query(`SELECT 1 AS existe FROM Alumnos WHERE LTRIM(RTRIM(dni)) = @dni UNION SELECT 1 AS existe FROM Profesores WHERE LTRIM(RTRIM(dni)) = @dni`);
             existe = result.recordset.length > 0;
-            if (existe) { dni++; }
+            if (existe) { contador++; }
         }
-        res.json({ siguiente: dni });
+        res.json({ siguiente: dniGenerado });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al generar DNI temporal' });
