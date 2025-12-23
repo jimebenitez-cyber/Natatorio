@@ -144,6 +144,10 @@ useEffect(() => {
   }));
 }, [turno.dia]);
 
+useEffect(() => {
+  setMensaje('');
+}, [view]);
+
 
   // --- FUNCIONES API ---
   const asignarDniTemporal = async (tipo) => {
@@ -283,7 +287,7 @@ useEffect(() => {
             }
             setTimeout(() => setMensaje(''), 10000);
         } else { 
-            setMensaje('DNI no encontrado.'); 
+            setMensaje('⚠️ DNI no encontrado.'); 
             setSocioEncontrado(null); 
             setAsistenciaHoy(null);
            
