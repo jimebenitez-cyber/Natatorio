@@ -273,14 +273,11 @@ tr:hover td {
   -moz-appearance: none;    /* Firefox */
   appearance: none;         /* Standard */
   background-image: none !important;
-<<<<<<< HEAD
-=======
 }
 
 /* Extra: por si el navegador insiste */
 .select-sin-flecha::-ms-expand {
   display: none;
->>>>>>> 7e032db8b996714b9c39d8328783466f2674216e
 }
 
 /* Extra: por si el navegador insiste */

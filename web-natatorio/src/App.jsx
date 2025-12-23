@@ -78,56 +78,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Solo calcula turno automático si NO estamos en modo "Egreso"
-    if (fechaIngreso && view === 'ingreso' && socioEncontrado && !asistenciaHoy) {
-        
-        const [year, month, day] = fechaIngreso.split('-').map(Number);
-        const fechaObj = new Date(year, month - 1, day);
-        const indexDia = fechaObj.getDay();
-        const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const nombreDia = nombresDias[indexDia];
-        
-        // --- CAMBIO: Asumimos que abre TODOS los días ---
-        // Si quisieras cerrar los domingos, podrías poner: if (nombreDia !== 'Domingo')
-        const abreEseDia = true; 
+    if (!turno.dia) return;
+    setTurno(prev => ({ ...prev, horario: obtenerHoraTurno() }));
+  }, [turno.dia]);
 
-        if (abreEseDia) {
-            let horarioCalculado = '';
-            // --- CAMBIO: Usamos la lista fija de 8 a 22 ---
-            const horasDisponibles = listaHoras; 
-            const hoyString = new Date().toISOString().split('T')[0];
-            
-            // Lógica de autoselección (busca la hora más cercana)
-            if (fechaIngreso === hoyString) {
-                const ahora = new Date();
-                const minutosActuales = (ahora.getHours() * 60) + ahora.getMinutes();
-                let menorDiferencia = Infinity;
-
-                horasDisponibles.forEach(horaStr => {
-                    const [h, m] = horaStr.split(':').map(Number);
-                    const minutosTurno = (h * 60) + m;
-                    const diferencia = Math.abs(minutosTurno - minutosActuales);
-                    
-                    // Si la diferencia es menor a 60 min, sugerimos ese horario
-                    if (diferencia < menorDiferencia && diferencia < 60) {
-                        menorDiferencia = diferencia;
-                        horarioCalculado = horaStr;
-                    }
-                });
-            }
-            
-            setTurno(prev => ({ 
-                ...prev, 
-                dia: nombreDia, 
-                horario: horarioCalculado 
-            }));
-
-        } else {
-            setTurno({ dia: '', horario: '' });
-            setMensaje(`⚠️ El natatorio está cerrado los ${nombreDia}s`);
-        }
-    }
-  }, [fechaIngreso, view, socioEncontrado, asistenciaHoy]);
 
   useEffect(() => {
     // Solo calcula el turno automático si NO estamos en modo "Egreso" (es decir, si no hay asistencia hoy o view no es ingreso)
@@ -571,7 +525,7 @@ export default function App() {
                             <div style={{textAlign:'center', marginTop:'20px'}}>
                                 <p style={{color:'#ef4444', fontWeight:'bold'}}>Este alumno ya completó su turno hoy.</p>
                                 <p>Ingreso: {asistenciaHoy.horario_ingreso} - Egreso: {asistenciaHoy.horario_egreso}</p>
-                                
+                                 
                             </div>
                         ) : (
                             // CASO C: NO VINO -> MOSTRAR INGRESO
@@ -579,6 +533,8 @@ export default function App() {
                                <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>
             Fecha de Asistencia (Hoy):
         </label>
+        
+        {/* 👇 ESTE ES EL INPUT QUE CAMBIAMOS 👇 */}
         <input 
             type="date" 
             value={fechaIngreso} 
