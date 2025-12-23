@@ -264,13 +264,20 @@ useEffect(() => {
             const rEstado = await fetch(`http://localhost:5000/api/asistencias/estado-hoy/${dataAlumno.dni}`);
             if (rEstado.ok) {
                 const dataEstado = await rEstado.json(); 
-                setAsistenciaHoy(dataEstado); // Guarda el estado (null, o objeto asistencia)
                 
+                // CASO 1: Está adentro (Tiene ingreso pero NO egreso)
                 if (dataEstado && !dataEstado.horario_egreso) {
-                    setMensaje('⚠️ El alumno ya está ingresado. Puedes registrar su egreso.');
+                    setAsistenciaHoy(dataEstado); // Guardamos estado para mostrar botón "Salir"
+                    setMensaje('⚠️ El alumno está en el natatorio.');
+                
+                // CASO 2: Ya vino y YA SALIÓ (Tiene egreso) -> ¡PERMITIR REINGRESO!
                 } else if (dataEstado && dataEstado.horario_egreso) {
-                    setMensaje('ℹ️ El alumno ya completó su turno hoy.');
+                    setAsistenciaHoy(null); // Ponemos null para que aparezca el formulario de entrada
+                    setMensaje('🔄 Reingreso: El alumno ya completó un turno hoy, pero puede ingresar de nuevo.');
+                
+                // CASO 3: Primera vez en el día
                 } else {
+                    setAsistenciaHoy(null);
                     setMensaje('¡Alumno verificado!');
                 }
             }

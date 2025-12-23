@@ -226,24 +226,18 @@ app.post('/api/asistencias', async (req, res) => {
 // 8. Listado Asistencia 
 // --- NUEVO: VERIFICAR SI EL ALUMNO ESTÁ HOY ---
 app.get('/api/asistencias/estado-hoy/:dni', async (req, res) => {
+    const {dni} = req.params;
     try {
         const pool = await sql.connect(dbConfig);
-        // Busca si hay una asistencia con la fecha de HOY
         const result = await pool.request()
-            .input('dni', sql.VarChar, req.params.dni)
+            .input('dni', sql.VarChar, dni)
             .query(`
-                SELECT TOP 1 id, horario_ingreso, horario_egreso 
-                FROM Asistencias 
+                SELECT TOP 1 * FROM Asistencias
                 WHERE alumno_dni = @dni 
-                AND fecha_registro = CAST(GETDATE() AS DATE)
+                AND CAST (fecha_registro AS DATE)= CAST(GETDATE() AS DATE)
                 ORDER BY id DESC
             `);
-
-        if (result.recordset.length > 0) {
-            res.json(result.recordset[0]); // Devuelve {id, horario_ingreso, horario_egreso}
-        } else {
-            res.json(null); // No vino hoy
-        }
+            res.json(result.recordset[0]);
     } catch (error) {
         console.error(error);
         res.status(500).send('Error al verificar estado');
