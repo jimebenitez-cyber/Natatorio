@@ -144,10 +144,6 @@ useEffect(() => {
   }));
 }, [turno.dia]);
 
-useEffect(() => {
-  setMensaje('');
-}, [view]);
-
 
   // --- FUNCIONES API ---
   const asignarDniTemporal = async (tipo) => {
@@ -188,25 +184,44 @@ useEffect(() => {
       } else { setMensaje('Error al eliminar profesor'); }
     } catch { setMensaje('Error de conexión'); }
   };
-
-  const handleGuardarAlumno = async () => {
-    if (!formAlumno.dni || !regexDni.test(formAlumno.dni)) { setMensaje('⚠️ DNI inválido.'); return; }
-    if (!formAlumno.nombre || !regexNombre.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); return; }
-    if (!formAlumno.apellido || !regexNombre.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); return; }
+const handleGuardarAlumno = async () => {
+    // Validaciones
+    if (!formAlumno.dni || !regexDni.test(formAlumno.dni)) { setMensaje('⚠️ DNI inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formAlumno.nombre || !regexNombre.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formAlumno.apellido || !regexNombre.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
 
     const esEdicion = !!formAlumno.id;
+
     try {
         const url = esEdicion ? `http://localhost:5000/api/alumnos/${formAlumno.id}` : 'http://localhost:5000/api/alumnos';
         const metodo = esEdicion ? 'PUT' : 'POST';
+        
         const res = await fetch(url, { method: metodo, headers: {'Content-Type':'application/json'}, body: JSON.stringify(formAlumno) });
         const data = await res.json();
+        
         if (res.ok) {
             setMensaje(esEdicion ? '¡Alumno actualizado!' : '¡Alumno registrado!');
-            setFormAlumno({id: null, dni:'', nombre:'', apellido:'', celular:'', gmail:''});
-        } else { setMensaje(data.message || 'Error al guardar.'); }
-    } catch(e) { setMensaje('Error conexión.');  }
-  };
+            
+            // Esperamos 1.5 seg para que se lea el mensaje de éxito
+            setTimeout(() => { 
+                setMensaje(''); 
+                
+                // Limpiamos el formulario
+                setFormAlumno({id: null, dni:'', nombre:'', apellido:'', celular:'', gmail:''});
+                
+                // 👇 CAMBIO: Ahora SIEMPRE vamos al menú principal ('main')
+                setView('main'); 
+            }, 1500);
 
+        } else { 
+            setMensaje(data.message || 'Error al guardar.'); 
+            setTimeout(() => setMensaje(''), 3000); 
+        }
+    } catch(e) { 
+        setMensaje('Error conexión.'); 
+        setTimeout(() => setMensaje(''), 3000); 
+    }
+  };
   const buscarAlumnoEditar = async () => {
       if(!busquedaDni) return;
       try {
@@ -221,21 +236,42 @@ useEffect(() => {
       } catch (e) { setMensaje('Error conexión'); }
   };
 
-  const handleGuardarProfesor = async () => {
-    if (!formProfesor.dni || !regexDni.test(formProfesor.dni)) { setMensaje('⚠️ DNI inválido.'); return; }
-    if (!formProfesor.nombre || !regexNombre.test(formProfesor.nombre)) { setMensaje('⚠️ Nombre inválido.');  return; }
+const handleGuardarProfesor = async () => {
+    // Validaciones
+    if (!formProfesor.dni || !regexDni.test(formProfesor.dni)) { setMensaje('⚠️ DNI inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formProfesor.nombre || !regexNombre.test(formProfesor.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
     
     const esEdicion = !!formProfesor.id;
+    
     try {
       const url = esEdicion ? `http://localhost:5000/api/profesores/${formProfesor.id}` : 'http://localhost:5000/api/profesores';
       const metodo = esEdicion ? 'PUT' : 'POST';
+      
       const res = await fetch(url, { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formProfesor) });
       const data = await res.json();
+      
       if (res.ok) {
-        setMensaje('¡Profesor guardado!');
-        setFormProfesor({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
-      } else { setMensaje(data.message || 'Error al guardar.'); }
-    } catch (e) { setMensaje('Error conexión.');  }
+        setMensaje(esEdicion ? '¡Profesor actualizado!' : '¡Profesor registrado!');
+        
+        // Esperamos 1.5 seg antes de limpiar y salir
+        setTimeout(() => { 
+            setMensaje(''); 
+            
+            // Limpiamos el formulario (incluyendo horarios)
+            setFormProfesor({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
+            
+            // 👇 Redirigimos siempre al Main
+            setView('main'); 
+        }, 1500);
+
+      } else { 
+          setMensaje(data.message || 'Error al guardar.'); 
+          setTimeout(() => setMensaje(''), 3000); 
+      }
+    } catch (e) { 
+        setMensaje('Error conexión.'); 
+        setTimeout(() => setMensaje(''), 3000); 
+    }
   };
 
   const buscarProfesor = async () => {
@@ -268,26 +304,19 @@ useEffect(() => {
             const rEstado = await fetch(`http://localhost:5000/api/asistencias/estado-hoy/${dataAlumno.dni}`);
             if (rEstado.ok) {
                 const dataEstado = await rEstado.json(); 
+                setAsistenciaHoy(dataEstado); // Guarda el estado (null, o objeto asistencia)
                 
-                // CASO 1: Está adentro (Tiene ingreso pero NO egreso)
                 if (dataEstado && !dataEstado.horario_egreso) {
-                    setAsistenciaHoy(dataEstado); // Guardamos estado para mostrar botón "Salir"
-                    setMensaje('⚠️ El alumno está en el natatorio.');
-                
-                // CASO 2: Ya vino y YA SALIÓ (Tiene egreso) -> ¡PERMITIR REINGRESO!
+                    setMensaje('⚠️ El alumno ya está ingresado. Puedes registrar su egreso.');
                 } else if (dataEstado && dataEstado.horario_egreso) {
-                    setAsistenciaHoy(null); // Ponemos null para que aparezca el formulario de entrada
-                    setMensaje('🔄 Reingreso: El alumno ya completó un turno hoy, pero puede ingresar de nuevo.');
-                
-                // CASO 3: Primera vez en el día
+                    setMensaje('ℹ️ El alumno ya completó su turno hoy.');
                 } else {
-                    setAsistenciaHoy(null);
                     setMensaje('¡Alumno verificado!');
                 }
             }
             setTimeout(() => setMensaje(''), 10000);
         } else { 
-            setMensaje('⚠️ DNI no encontrado.'); 
+            setMensaje('DNI no encontrado.'); 
             setSocioEncontrado(null); 
             setAsistenciaHoy(null);
            
@@ -515,56 +544,18 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
 )}
 
 
-       {view === 'main' && (
-  <div className="menu-container">
-
-    <button
-      className="btn-Acceso btn-control"
-      onClick={() => {
-        setView('ingreso');
-        setBusquedaDni('');
-        setSocioEncontrado(null);
-        setTurno({ dia:'', horario:'' });
-        setMensaje('');
-        setFechaIngreso(new Date().toISOString().split('T')[0]);
-      }}
-    >
-      <CheckCircle size={36} color="#059669"/>
-      <span>Control Acceso</span>
-    </button>
-
-  
-    <div className="grid-menu">
-      <button className="btn-menu" onClick={() => setView('menuAgregar')}>
-        <UserPlus size={36} color="var(--primary)"/>
-        <span>Registrar</span>
-      </button>
-
-      <button className="btn-menu" onClick={() => setView('menuEditar')}>
-        <Edit size={36} color="#7c3aed"/>
-        <span>Editar Datos</span>
-      </button>
-
-      <button className="btn-menu" onClick={() => setView('menuReportes')}>
-        <FileText size={36} color="#64748b"/>
-        <span>Reportes</span>
-      </button>
-
-      <button
-        className="btn-menu"
-        onClick={() => {
-          setView('activos');
-          obtenerActivos();
-        }}
-      >
-        <Users size={36} color="#3b82f6"/>
-        <span>Gente en Pileta</span>
-      </button>
-    </div>
-
-  </div>
-)}
-
+        {view === 'main' && (
+          <div className="grid-menu">
+            <button className="btn-menu" onClick={() => setView('menuAgregar')}><UserPlus size={36} color="var(--primary)"/><span>Registrar</span></button>
+            <button className="btn-menu" onClick={() => setView('menuEditar')}><Edit size={36} color="#7c3aed"/><span>Editar Datos</span></button>
+            <button className="btn-menu" onClick={() => { setView('ingreso'); setBusquedaDni(''); setSocioEncontrado(null);setTurno({ dia:'', horario:'' });setMensaje('');setFechaIngreso(new Date().toISOString().split('T')[0]); }}><CheckCircle size={36} color="#059669"/><span>Control Acceso</span></button>
+            <button className="btn-menu" onClick={() => setView('menuReportes')}><FileText size={36} color="#64748b"/><span>Reportes</span></button>
+            <button className="btn-menu" onClick={() => { setView('activos'); obtenerActivos(); }}>
+    <Users size={36} color="#3b82f6"/>
+    <span>Gente en Pileta</span>
+</button>
+          </div>
+        )}
 
         {view === 'menuReportes' && (
             <div>
