@@ -1,9 +1,13 @@
+//APP.JSX
 import React, { useState, useEffect } from 'react';
-import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText ,LogOut} from 'lucide-react';
+import { Users, Search, UserPlus, GraduationCap, ClipboardList, ArrowLeft, Save, UserCog, CheckCircle, Trash2, Edit, Moon, Sun, CalendarDays, FileText, UserPen, UserStar, LogOut} from 'lucide-react';
 import './App.css'; 
 
-const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
-const regexDni = /^\d+$/;
+const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/; //valida que se letra
+const regexDni = /^\d+$/; //valida que sea numero 
+
+const diasReporte = ['Lunes','Martes','Miércoles','Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const horasReporte = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'];
 
 export default function App() {
   const [view, setView] = useState('main');
@@ -38,6 +42,7 @@ export default function App() {
 
   // Estados Listado y Historial
   const [filtroListado, setFiltroListado] = useState({ dia: '', horario: '' });
+ const [filtroReporteFecha, setFiltroReporteFecha] = useState({ fecha: '', horario: '' });
   const [listaAsistencia, setListaAsistencia] = useState([]);
   const [historialPersonal, setHistorialPersonal] = useState([]);
   const [alumnoHistorial, setAlumnoHistorial] = useState(null);
@@ -45,7 +50,7 @@ const [listaActivos, setListaActivos] = useState([]);
 
   const [horariosBD, setHorariosBD] = useState([]);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
-  const [enviando, setEnviando] = useState(false);
+  const [enviando,setEnviando]=useState(false);
 
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado','Domingo'];
   const listaHoras = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00','21:00','22:00'];
@@ -79,65 +84,67 @@ const [modal, setModal] = useState({ show: false, titulo: '', mensaje: '', accio
     return `${hora.toString().padStart(2, '0')}:00`;
   };
 
+  const obtenerFechaHoy= () => {
+    const hoy = new Date();
+    return hoy.toISOString().split('T')[0];
+  }
+
   useEffect(() => {
     if (!turno.dia) return;
     setTurno(prev => ({ ...prev, horario: obtenerHoraTurno() }));
   }, [turno.dia]);
   
 
-/*
+  const obtenerDiaSemana = (fechaISO) => {
+  const [year, month, day] = fechaISO.split('-');
+  const fecha = new Date(year, month - 1, day);
+
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  return dias[fecha.getDay()];
+};
+
 useEffect(() => {
-    // Solo calcula turno automático si NO estamos en modo "Egreso"
-    if (fechaIngreso && view === 'ingreso' && socioEncontrado && !asistenciaHoy) {
-        
-        const [year, month, day] = fechaIngreso.split('-').map(Number);
-        const fechaObj = new Date(year, month - 1, day);
-        const indexDia = fechaObj.getDay();
-        const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const nombreDia = nombresDias[indexDia];
-        
-        // --- CAMBIO: Asumimos que abre TODOS los días ---
-        // Si quisieras cerrar los domingos, podrías poner: if (nombreDia !== 'Domingo')
-        const abreEseDia = true; 
+  if (socioEncontrado) {
+    // 1. Obtenemos la fecha de hoy en formato YYYY-MM-DD
+    const hoyISO = new Date().toISOString().split('T')[0];
+    
+    // 2. Calculamos el nombre del día usando tu función
+    const nombreDiaActual = obtenerDiaSemana(hoyISO);
+    
+    // 3. Obtenemos la hora con tu lógica de los 45 minutos
+    const horaCalculada = obtenerHoraTurno();
 
-        if (abreEseDia) {
-            let horarioCalculado = '';
-            // --- CAMBIO: Usamos la lista fija de 8 a 22 ---
-            const horasDisponibles = listaHoras; 
-            const hoyString = new Date().toISOString().split('T')[0];
-            
-            // Lógica de autoselección (busca la hora más cercana)
-            if (fechaIngreso === hoyString) {
-                const ahora = new Date();
-                const minutosActuales = (ahora.getHours() * 60) + ahora.getMinutes();
-                let menorDiferencia = Infinity;
+    // 4. Seteamos el estado del turno (ajusta los nombres si tus estados son diferentes)
+    setTurno({
+      fecha: hoyISO,
+      dia: nombreDiaActual,
+      horario: horaCalculada
+    });
+  }
+}, [socioEncontrado]); // Se ejecuta cada vez que encuentras un socio nuevo
 
-                horasDisponibles.forEach(horaStr => {
-                    const [h, m] = horaStr.split(':').map(Number);
-                    const minutosTurno = (h * 60) + m;
-                    const diferencia = Math.abs(minutosTurno - minutosActuales);
-                    
-                    // Si la diferencia es menor a 60 min, sugerimos ese horario
-                    if (diferencia < menorDiferencia && diferencia < 60) {
-                        menorDiferencia = diferencia;
-                        horarioCalculado = horaStr;
-                    }
-                });
-            }
-            
-            setTurno(prev => ({ 
-                ...prev, 
-                dia: nombreDia, 
-                horario: horarioCalculado 
-            }));
 
-        } else {
-            setTurno({ dia: '', horario: '' });
-            setMensaje(`⚠️ El natatorio está cerrado los ${nombreDia}s`);
-        }
-    }
-  }, [fechaIngreso, view, socioEncontrado, asistenciaHoy]); // Quitamos horariosBD de las dependencias
-*/
+useEffect(() => {
+  if (!fechaIngreso) return;
+
+  const dia = obtenerDiaSemana(fechaIngreso);
+
+  setTurno(prev => ({
+    ...prev,
+    dia
+  }));
+}, [fechaIngreso]);
+
+useEffect(() => {
+  if (!turno.dia) return;
+
+  setTurno(prev => ({
+    ...prev,
+    horario: obtenerHoraTurno()
+  }));
+}, [turno.dia]);
+
+
   // --- FUNCIONES API ---
   const asignarDniTemporal = async (tipo) => {
     try {
@@ -151,10 +158,8 @@ useEffect(() => {
             setFormProfesor({ ...formProfesor, dni: data.siguiente.toString() });
         }
         setMensaje(`🔢 Número temporal asignado: ${data.siguiente}`);
-        setTimeout(() => setMensaje(''), 3000);
     } catch (error) {
         setMensaje('❌ Error al conectar con el servidor');
-        setTimeout(() => setMensaje(''), 3000);
     }
   };
 
@@ -165,7 +170,6 @@ useEffect(() => {
       if (res.ok) {
         setMensaje('🗑️ Alumno eliminado correctamente');
         setFormAlumno({ id:null, dni:'', nombre:'', apellido:'', celular:'', gmail:'' });
-        setTimeout(() => { setMensaje(''); setView('main'); }, 1500);
       } else { setMensaje('Error al eliminar alumno'); }
     } catch { setMensaje('Error de conexión'); }
   };
@@ -177,15 +181,14 @@ useEffect(() => {
       if (res.ok) {
         setMensaje('🗑️ Profesor eliminado correctamente');
         setFormProfesor({ id:null, nombre:'', apellido:'', dni:'', telefono:'', especialidad:'', horarios:[{dia:'', horario:''}] });
-        setTimeout(() => { setMensaje(''); setView('main'); }, 1500);
       } else { setMensaje('Error al eliminar profesor'); }
     } catch { setMensaje('Error de conexión'); }
   };
 
   const handleGuardarAlumno = async () => {
-    if (!formAlumno.dni || !regexDni.test(formAlumno.dni)) { setMensaje('⚠️ DNI inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
-    if (!formAlumno.nombre || !regexNombre.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
-    if (!formAlumno.apellido || !regexNombre.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formAlumno.dni || !regexDni.test(formAlumno.dni)) { setMensaje('⚠️ DNI inválido.'); return; }
+    if (!formAlumno.nombre || !regexNombre.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); return; }
+    if (!formAlumno.apellido || !regexNombre.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); return; }
 
     const esEdicion = !!formAlumno.id;
     try {
@@ -196,9 +199,8 @@ useEffect(() => {
         if (res.ok) {
             setMensaje(esEdicion ? '¡Alumno actualizado!' : '¡Alumno registrado!');
             setFormAlumno({id: null, dni:'', nombre:'', apellido:'', celular:'', gmail:''});
-            setTimeout(() => { setMensaje(''); setView('main'); }, 1500);
-        } else { setMensaje(data.message || 'Error al guardar.'); setTimeout(() => setMensaje(''), 3000); }
-    } catch(e) { setMensaje('Error conexión.'); setTimeout(() => setMensaje(''), 3000); }
+        } else { setMensaje(data.message || 'Error al guardar.'); }
+    } catch(e) { setMensaje('Error conexión.');  }
   };
 
   const buscarAlumnoEditar = async () => {
@@ -211,13 +213,13 @@ useEffect(() => {
               setEsEdicionAlumno(true);
               setView('formAlumno');
               setBusquedaDni(''); 
-          } else { setMensaje('⚠️ Alumno no encontrado.'); setTimeout(() => setMensaje(''), 3000); }
-      } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
+          } else { setMensaje('⚠️ Alumno no encontrado.'); }
+      } catch (e) { setMensaje('Error conexión'); }
   };
 
   const handleGuardarProfesor = async () => {
-    if (!formProfesor.dni || !regexDni.test(formProfesor.dni)) { setMensaje('⚠️ DNI inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
-    if (!formProfesor.nombre || !regexNombre.test(formProfesor.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formProfesor.dni || !regexDni.test(formProfesor.dni)) { setMensaje('⚠️ DNI inválido.'); return; }
+    if (!formProfesor.nombre || !regexNombre.test(formProfesor.nombre)) { setMensaje('⚠️ Nombre inválido.');  return; }
     
     const esEdicion = !!formProfesor.id;
     try {
@@ -228,9 +230,8 @@ useEffect(() => {
       if (res.ok) {
         setMensaje('¡Profesor guardado!');
         setFormProfesor({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
-        setTimeout(() => { setMensaje(''); setView('main'); }, 1500);
-      } else { setMensaje(data.message || 'Error al guardar.'); setTimeout(() => setMensaje(''), 3000); }
-    } catch (e) { setMensaje('Error conexión.'); setTimeout(() => setMensaje(''), 3000); }
+      } else { setMensaje(data.message || 'Error al guardar.'); }
+    } catch (e) { setMensaje('Error conexión.');  }
   };
 
   const buscarProfesor = async () => {
@@ -273,25 +274,23 @@ useEffect(() => {
                     setMensaje('¡Alumno verificado!');
                 }
             }
-            setTimeout(() => setMensaje(''), 7000);
+            setTimeout(() => setMensaje(''), 10000);
         } else { 
             setMensaje('DNI no encontrado.'); 
             setSocioEncontrado(null); 
             setAsistenciaHoy(null);
-            setTimeout(() => setMensaje(''), 3000); 
+           
         }
     } catch(e) { 
         setMensaje('Error conexión'); 
-        setTimeout(() => setMensaje(''), 3000); 
+   
     }
   };
 
   const registrarAsistencia = async () => {
-      // Si ya está enviando o faltan datos, no hace nada
-      if (enviando || !turno.dia || !turno.horario) return;
-
-      setEnviando(true); // 🔒 BLOQUEAMOS EL BOTÓN
-
+      if (enviando||!turno.dia || !turno.horario) return;
+        setEnviando(true);
+      
       try {
           const res = await fetch('http://localhost:5000/api/asistencias', {
               method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -358,13 +357,32 @@ useEffect(() => {
     }
   };
 
+//listado por dni
   const verListado = async () => {
-      if(!filtroListado.dia || !filtroListado.horario) return;
+      if(!filtroListado.fecha || !filtroListado.horario) return;
       try {
-          const res = await fetch(`http://localhost:5000/api/asistencias/listado?dia=${filtroListado.dia}&horario=${filtroListado.horario}`);
+          const res = await fetch(`http://localhost:5000/api/asistencias/listado?fecha=${filtroListado.fecha}&horario=${filtroListado.horario}`);
+          console.log(res)
           if(res.ok) { setListaAsistencia(await res.json()); setBusquedaRealizada(true); }
-      } catch (error) { setMensaje('Error al cargar lista'); setTimeout(() => setMensaje(''), 3000); }
+      } catch (error) { setMensaje('Error al cargar lista'); }
   };
+
+//listado por fecha
+    const verListadoPorFecha = async () => {
+    if (!filtroReporteFecha.fecha || !filtroReporteFecha.horario) return;
+
+    try {
+        const res = await fetch(`http://localhost:5000/api/asistencias/listado-por-fecha?fecha=${filtroReporteFecha.fecha}&horario=${filtroReporteFecha.horario}`);
+
+        if (res.ok) {
+        setListaAsistencia(await res.json());
+        setBusquedaRealizada(true);
+        }
+    } catch (error) {
+        setMensaje('Error al cargar lista');
+        setTimeout(() => setMensaje(''), 3000);
+    }
+    };
 
   const eliminarAsistencia = async (idAsistencia) => {
       if(!window.confirm('¿Seguro que quieres quitar a esta persona de la lista?')) return;
@@ -373,7 +391,6 @@ useEffect(() => {
           if(res.ok) {
               setMensaje('🗑️ Registro eliminado correctamente');
               setListaAsistencia(listaAsistencia.filter(item => item.id !== idAsistencia));
-              setTimeout(() => setMensaje(''), 3000);
           } else { setMensaje('Error al eliminar'); }
       } catch (error) { setMensaje('Error de conexión'); }
   };
@@ -382,11 +399,11 @@ useEffect(() => {
       if(!busquedaDni) return;
       try {
           const resAlumno = await fetch(`http://localhost:5000/api/alumnos/${busquedaDni}`);
-          if(!resAlumno.ok) { setMensaje('⚠️ Alumno no encontrado'); setTimeout(() => setMensaje(''), 3000); return; }
+          if(!resAlumno.ok) { setMensaje('⚠️ Alumno no encontrado'); return; }
           setAlumnoHistorial(await resAlumno.json());
           const resHistorial = await fetch(`http://localhost:5000/api/asistencias/historial/${busquedaDni}`);
           if(resHistorial.ok) { setHistorialPersonal(await resHistorial.json()); }
-      } catch (e) { setMensaje('Error de conexión'); setTimeout(() => setMensaje(''), 3000); }
+      } catch (e) { setMensaje('Error de conexión'); }
   };
   // Obtener la lista de gente que está en el agua
   const obtenerActivos = async () => {
@@ -472,7 +489,20 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
           <button className="btn-theme" onClick={toggleTheme}>{isDarkMode ? <Sun size={28} /> : <Moon size={28} />}</button>
         </div>
 
-        {mensaje && <div className={`alerta ${mensaje.includes('Error') || mensaje.includes('⚠️') || mensaje.includes('No') ? 'error' : 'exito'}`}>{mensaje}</div>}
+        {mensaje && (
+        <div className={`alerta ${mensaje.includes('Error') || mensaje.includes('⚠️') ? 'error' : 'exito'}`}>
+            <span>{mensaje}</span>
+
+            <button
+            onClick={() => setMensaje('')}
+            className="btn-cerrar-alerta"
+            aria-label="Cerrar"
+            >
+            ✖
+            </button>
+        </div>
+)}
+
 
         {view === 'main' && (
           <div className="grid-menu">
@@ -492,8 +522,8 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver al Inicio</button>
                 <h2 style={{marginBottom:'30px'}}>Seleccione el Reporte</h2>
                 <div className="grid-menu">
-                    <button className="btn-menu" onClick={() => { setView('listados'); setListaAsistencia([]); setFiltroListado({dia:'', horario:''}); setBusquedaRealizada(false); }}><ClipboardList size={36} color="var(--primary)"/> <span>Asistencias por Turno</span></button>
-                    <button className="btn-menu" onClick={() => { setView('buscarHistorial'); setBusquedaDni(''); setHistorialPersonal([]); setAlumnoHistorial(null); }}><CalendarDays size={36} color="#059669"/> <span>Historial de Alumno</span></button>
+                    <button className="btn-menu" onClick={() => { setView('listados'); setListaAsistencia([]); setFiltroListado({fecha:'', horario:''}); setBusquedaRealizada(false); }}><CalendarDays  size={36} color="var(--primary)"/> <span>Historial por fecha</span></button>
+                    <button className="btn-menu" onClick={() => { setView('buscarHistorial'); setBusquedaDni(''); setHistorialPersonal([]); setAlumnoHistorial(null); }}><ClipboardList size={36} color="#059669"/> <span>Historial por DNI</span></button>
                 </div>
             </div>
         )}
@@ -514,8 +544,8 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
                 <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
                 <h2 style={{marginBottom:'30px'}}>¿Qué deseas editar?</h2>
                 <div className="grid-menu">
-                    <button className="btn-menu" onClick={() => { setView('buscarAlumno'); setBusquedaDni(''); }}><UserCog size={36} color="#7c3aed"/> <span>Editar Alumno</span></button>
-                    <button className="btn-menu" onClick={() => { setView('buscarProfe'); setBusquedaDni(''); }}><Search size={36} color="#d97706"/> <span>Editar Profesor</span></button>
+                    <button className="btn-menu" onClick={() => { setView('buscarAlumno'); setBusquedaDni(''); }}><UserPen size={36} color="#7c3aed"/> <span>Editar Alumno</span></button>
+                    <button className="btn-menu" onClick={() => { setView('buscarProfe'); setBusquedaDni(''); }}><UserStar size={36} color="#d97706"/> <span>Editar Profesor</span></button>
                 </div>
             </div>
         )}
@@ -642,8 +672,10 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
             }}
         />
 
-        <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>Seleccionar Turno:</label> <div style={{display:'flex', gap:'15px'}}>
+        <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}> Turno:</label> <div style={{display:'flex', gap:'15px'}}>
                                     <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
+
+
                                     <select className='select-sin-flecha' value={turno.horario} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}}>
                                         <option value={turno.horario}>{turno.horario || 'Horario...'}</option>
 
@@ -714,20 +746,19 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
                 
                 {/* Filtros */}
                 <div style={{display:'flex', gap:'15px', marginTop:'20px', alignItems:'center'}}>
-                    <select value={filtroListado.dia} onChange={e=>{setFiltroListado({...filtroListado, dia:e.target.value, horario:''}); setBusquedaRealizada(false);}} style={{marginBottom:0}}><option value="">Día...</option>{getDiasDisponibles().map(d=><option key={d} value={d}>{d}</option>)}</select>
-                    
-                    <select value={filtroListado.horario} onChange={e=>{setFiltroListado({...filtroListado, horario:e.target.value}); setBusquedaRealizada(false);}} disabled={!filtroListado.dia} style={{marginBottom:0}}>
+                    <input type="date" value={filtroReporteFecha.fecha} onChange={e => {setFiltroReporteFecha({...filtroReporteFecha,fecha: e.target.value});setBusquedaRealizada(false);}}style={{ marginBottom: 0 }}/>
+                    <select value={filtroReporteFecha.horario} onChange={e => { setFiltroReporteFecha({   ...filtroReporteFecha,   horario: e.target.value });  setBusquedaRealizada(false);}}style={{ marginBottom: 0 }}>
                         <option value="">Hora...</option>
-                        {getHorasPorDia(filtroListado.dia).map(h=><option key={h} value={h}>{h}</option>)}
-                    </select>
-                    
-                    <button onClick={verListado} className="btn-primary" style={{marginTop:0, width:'auto'}}>Ver</button>
+                        {horasReporte.map(h => (<option key={h} value={h}>{h}</option>))}</select>
+
+                    <button onClick={verListadoPorFecha} className="btn-primary"style={{ marginTop: 0, width: 'auto' }}> Ver</button>
                 </div>
+                    
 
                 {/* Tabla */}
                 {listaAsistencia.length > 0 ? (
                     <table>
-                        <thead>
+                      <thead>
                             <tr>
                                 <th>Fecha</th> 
                                 <th>Ingreso</th> {/* Antes Turno */}
@@ -872,4 +903,4 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
       </div>
     </div>
   );
-}
+}  
