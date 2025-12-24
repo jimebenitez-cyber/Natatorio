@@ -782,7 +782,7 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
                                     <td>{getHoraSalida(a.horario_ingreso, a.horario_egreso)}</td>
                                     
                                     <td>{a.nombre} {a.apellido}</td>
-                                    <td>{a.dni}</td>
+                                    <td>{a.alumno_dni}</td>
                                     <td>
                                         <button 
                                             onClick={() => eliminarAsistencia(a.id)} 
