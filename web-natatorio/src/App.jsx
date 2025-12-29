@@ -144,6 +144,9 @@ useEffect(() => {
   }));
 }, [turno.dia]);
 
+useEffect(() => {
+  setMensaje('');
+}, [view]);
 
   // --- FUNCIONES API ---
   const asignarDniTemporal = async (tipo) => {
