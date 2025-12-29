@@ -26,7 +26,6 @@ const dbConfig = {
 // 1. Guardar Alumno
 app.post('/api/alumnos', async (req, res) => {
     try {
-        console.log("entra bien")
         const pool = await sql.connect(dbConfig);
         
         const check = await pool.request()
@@ -249,13 +248,14 @@ app.get('/api/asistencias/estado-hoy/:dni', async (req, res) => {
 // --- NUEVO: REGISTRAR EGRESO ---
 app.put('/api/asistencias/egreso/:id', async (req, res) => {
     try {
-        const { horario_egreso } = req.body;
+        const { horario_egreso, motivo } = req.body;
         const pool = await sql.connect(dbConfig);
         
         await pool.request()
             .input('id', sql.Int, req.params.id)
             .input('egreso', sql.VarChar, horario_egreso)
-            .query('UPDATE Asistencias SET horario_egreso = @egreso WHERE id = @id');
+            .input('motivo', sql.VarChar, motivo )
+            .query('UPDATE Asistencias SET horario_egreso = @egreso, motivo = @motivo WHERE id = @id');
 
         res.json({ message: 'Egreso registrado correctamente' });
     } catch (error) {
@@ -276,7 +276,7 @@ app.get('/api/asistencias/listado', async (req, res) => {
             .query(`
                 SELECT a.id, a.fecha_registro, a.dia, 
                        a.horario_ingreso, a.horario_egreso,
-                       al.nombre, al.apellido, al.dni
+                       al.nombre, al.apellido, al.dni, a.motivo
                 FROM Asistencias a
                 INNER JOIN Alumnos al ON a.alumno_dni = al.dni
                 WHERE a.dia = @dia 
@@ -354,7 +354,7 @@ app.get('/api/asistencias/historial/:dni', async (req, res) => {
                     fecha_registro,
                     dia, 
                     horario_ingreso,
-                    horario_egreso
+                    horario_egreso, motivo
                 FROM Asistencias 
                 WHERE alumno_dni = @dni 
                 ORDER BY fecha_registro DESC

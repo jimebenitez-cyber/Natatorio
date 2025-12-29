@@ -34,6 +34,7 @@ export default function App() {
   const [socioEncontrado, setSocioEncontrado] = useState(null);
   const [asistenciaHoy, setAsistenciaHoy] = useState(null); // Nuevo estado: Guarda info si ya vino hoy
   
+  const [motivoEgreso, setMotivoEgreso] = useState('');
   // ESTADO TURNO: dia y horario
   const [turno, setTurno] = useState({ dia: '', horario: '' });
   
@@ -144,6 +145,9 @@ useEffect(() => {
   }));
 }, [turno.dia]);
 
+useEffect(() => {
+  setMensaje('');
+}, [view]);
 
   // --- FUNCIONES API ---
   const asignarDniTemporal = async (tipo) => {
@@ -379,9 +383,11 @@ const handleGuardarAlumno = async () => {
         const res = await fetch(`http://localhost:5000/api/asistencias/egreso/${asistenciaHoy.id}`, {
             method: 'PUT', 
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ horario_egreso: horaActual })
+            body: JSON.stringify({ 
+                horario_egreso: horaActual,
+             motivo: motivoEgreso })
         });
-
+        setMotivoEgreso(''); // limpiar campo después
         if(res.ok) {
             setMensaje(`👋 Salida registrada a las ${horaActual}`);
             setTimeout(() => { 
@@ -704,6 +710,7 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
                                 <button onClick={registrarEgreso} className="btn-primary" style={{background:'#eab308', color:'black', fontWeight:'bold', marginTop:'20px'}}>
                                     👋 Registrar Egreso
                                 </button>
+                                <input type="text" placeholder="Motivo del egreso (opcional)" value={motivoEgreso} onChange={(e) => setMotivoEgreso(e.target.value)}style={{ marginTop: '8px', width: '100%' }}/>
                             </div>
                         ) : asistenciaHoy && asistenciaHoy.horario_egreso ? (
                             // CASO B: YA SE FUE
@@ -967,4 +974,4 @@ const cerrarModal = () => setModal({ show: false, titulo: '', mensaje: '', accio
       </div>
     </div>
   );
-}  
+}
