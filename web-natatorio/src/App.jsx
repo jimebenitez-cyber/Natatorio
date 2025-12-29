@@ -285,7 +285,6 @@ useEffect(() => {
                     setMensaje('¡Alumno verificado!');
                 }
             }
-            setTimeout(() => setMensaje(''), 10000);
         } else { 
             setMensaje('⚠️ DNI no encontrado.'); 
             setSocioEncontrado(null); 

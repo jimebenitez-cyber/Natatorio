@@ -327,19 +327,48 @@ app.get('/api/asistencias/listado-por-fecha', async (req, res) => {
 app.put('/api/alumnos/:id', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
+
+        const { dni, nombre, apellido, celular, gmail } = req.body;
+        const id = req.params.id;
+
+        // 1️⃣ Verificar si el DNI ya existe en OTRO alumno
+        const verificar = await pool.request()
+            .input('dni', sql.VarChar, dni)
+            .input('id', sql.Int, id)
+            .query(`
+                SELECT id 
+                FROM Alumnos 
+                WHERE dni = @dni AND id <> @id
+            `);
+
+        if (verificar.recordset.length > 0) {
+            return res.status(409).json({
+                message: '⚠️ El DNI ya está registrado en otro alumno'
+            });
+        }
+
+        // 2️⃣ Actualizar alumno
         await pool.request()
-            .input('id', sql.Int, req.params.id)
-            .input('dni', sql.VarChar, req.body.dni)
-            .input('nombre', sql.VarChar, req.body.nombre)
-            .input('apellido', sql.VarChar, req.body.apellido)
-            .input('telefono', sql.VarChar, req.body.celular)
-            .input('email', sql.VarChar, req.body.gmail)
-            .query('UPDATE Alumnos SET dni=@dni, nombre=@nombre, apellido=@apellido, telefono=@telefono, email=@email WHERE id=@id');
-        res.json({ message: 'Alumno actualizado' });
+            .input('id', sql.Int, id)
+            .input('dni', sql.VarChar, dni)
+            .input('nombre', sql.VarChar, nombre)
+            .input('apellido', sql.VarChar, apellido)
+            .input('telefono', sql.VarChar, celular)
+            .input('email', sql.VarChar, gmail)
+            .query(`
+                UPDATE Alumnos 
+                SET dni=@dni, nombre=@nombre, apellido=@apellido, telefono=@telefono, email=@email 
+                WHERE id=@id
+            `);
+
+        res.json({ message: '✅ Alumno actualizado correctamente' });
+
     } catch (error) {
-        res.status(500).send('Error al actualizar');
+        console.error(error);
+        res.status(500).json({ message: '❌ Error al actualizar alumno' });
     }
 });
+
 
 // 10. Historial personal (ACTUALIZADO CON EGRESO)
 app.get('/api/asistencias/historial/:dni', async (req, res) => {
