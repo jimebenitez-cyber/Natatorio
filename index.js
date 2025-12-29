@@ -237,11 +237,7 @@ app.get('/api/asistencias/estado-hoy/:dni', async (req, res) => {
                 AND CAST (fecha_registro AS DATE)= CAST(GETDATE() AS DATE)
                 ORDER BY id DESC
             `);
-<<<<<<< HEAD
             res.json(result.recordset[0]||null);
-=======
-            res.json(result.recordset[0] || null);
->>>>>>> 3e26da7cd267b2cbbe286a13159f4c077b4a34a5
     } catch (error) {
         console.error(error);
         res.status(500).send('Error al verificar estado');
