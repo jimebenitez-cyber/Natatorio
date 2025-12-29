@@ -1,3 +1,4 @@
+//INDEX
 const express = require('express');
 const cors = require('cors');
 const sql = require('mssql');
@@ -25,6 +26,7 @@ const dbConfig = {
 // 1. Guardar Alumno
 app.post('/api/alumnos', async (req, res) => {
     try {
+        console.log("entra bien")
         const pool = await sql.connect(dbConfig);
         
         const check = await pool.request()
