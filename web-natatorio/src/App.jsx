@@ -144,6 +144,9 @@ useEffect(() => {
   }));
 }, [turno.dia]);
 
+useEffect(() => {
+  setMensaje('');
+}, [view]);
 
   // --- FUNCIONES API ---
   const asignarDniTemporal = async (tipo) => {
@@ -187,8 +190,8 @@ useEffect(() => {
 const handleGuardarAlumno = async () => {
     // Validaciones
     if (!formAlumno.dni || !regexDni.test(formAlumno.dni)) { setMensaje('⚠️ DNI inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
-    if (!formAlumno.nombre || !regexNombre.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
-    if (!formAlumno.apellido || !regexNombre.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formAlumno.nombre || !regexTexto.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
+    if (!formAlumno.apellido || !regexTexto.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); setTimeout(() => setMensaje(''), 3000); return; }
 
     const esEdicion = !!formAlumno.id;
 
