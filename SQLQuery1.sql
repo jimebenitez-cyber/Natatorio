@@ -153,11 +153,15 @@ GO*/
 
 select * from Alumnos 
 select * from Profesores
+select * from Asistencias
+select * from Horarios_Profesores
+select * from Turnos
 
-ALTER TABLE Alumnos
-ADD CONSTRAINT UQ_Alumnos_DNI UNIQUE (dni);
 
-SELECT *
+
+delete from Turnos
+
+SELECT * 
 FROM asistencias
 WHERE CONVERT(date, fecha_registro) = '2025-12-22'
 SELECT *

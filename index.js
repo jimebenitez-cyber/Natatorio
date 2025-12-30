@@ -1,3 +1,4 @@
+//INDEX
 const express = require('express');
 const cors = require('cors');
 const sql = require('mssql');
@@ -247,13 +248,14 @@ app.get('/api/asistencias/estado-hoy/:dni', async (req, res) => {
 // --- NUEVO: REGISTRAR EGRESO ---
 app.put('/api/asistencias/egreso/:id', async (req, res) => {
     try {
-        const { horario_egreso } = req.body;
+        const { horario_egreso, motivo } = req.body;
         const pool = await sql.connect(dbConfig);
         
         await pool.request()
             .input('id', sql.Int, req.params.id)
             .input('egreso', sql.VarChar, horario_egreso)
-            .query('UPDATE Asistencias SET horario_egreso = @egreso WHERE id = @id');
+            .input('motivo', sql.VarChar, motivo )
+            .query('UPDATE Asistencias SET horario_egreso = @egreso, motivo = @motivo WHERE id = @id');
 
         res.json({ message: 'Egreso registrado correctamente' });
     } catch (error) {
@@ -274,7 +276,7 @@ app.get('/api/asistencias/listado', async (req, res) => {
             .query(`
                 SELECT a.id, a.fecha_registro, a.dia, 
                        a.horario_ingreso, a.horario_egreso,
-                       al.nombre, al.apellido, al.dni
+                       al.nombre, al.apellido, al.dni, a.motivo
                 FROM Asistencias a
                 INNER JOIN Alumnos al ON a.alumno_dni = al.dni
                 WHERE a.dia = @dia 
@@ -327,48 +329,19 @@ app.get('/api/asistencias/listado-por-fecha', async (req, res) => {
 app.put('/api/alumnos/:id', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
-
-        const { dni, nombre, apellido, celular, gmail } = req.body;
-        const id = req.params.id;
-
-        // 1️⃣ Verificar si el DNI ya existe en OTRO alumno
-        const verificar = await pool.request()
-            .input('dni', sql.VarChar, dni)
-            .input('id', sql.Int, id)
-            .query(`
-                SELECT id 
-                FROM Alumnos 
-                WHERE dni = @dni AND id <> @id
-            `);
-
-        if (verificar.recordset.length > 0) {
-            return res.status(409).json({
-                message: '⚠️ El DNI ya está registrado en otro alumno'
-            });
-        }
-
-        // 2️⃣ Actualizar alumno
         await pool.request()
-            .input('id', sql.Int, id)
-            .input('dni', sql.VarChar, dni)
-            .input('nombre', sql.VarChar, nombre)
-            .input('apellido', sql.VarChar, apellido)
-            .input('telefono', sql.VarChar, celular)
-            .input('email', sql.VarChar, gmail)
-            .query(`
-                UPDATE Alumnos 
-                SET dni=@dni, nombre=@nombre, apellido=@apellido, telefono=@telefono, email=@email 
-                WHERE id=@id
-            `);
-
-        res.json({ message: '✅ Alumno actualizado correctamente' });
-
+            .input('id', sql.Int, req.params.id)
+            .input('dni', sql.VarChar, req.body.dni)
+            .input('nombre', sql.VarChar, req.body.nombre)
+            .input('apellido', sql.VarChar, req.body.apellido)
+            .input('telefono', sql.VarChar, req.body.celular)
+            .input('email', sql.VarChar, req.body.gmail)
+            .query('UPDATE Alumnos SET dni=@dni, nombre=@nombre, apellido=@apellido, telefono=@telefono, email=@email WHERE id=@id');
+        res.json({ message: 'Alumno actualizado' });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: '❌ Error al actualizar alumno' });
+        res.status(500).send('Error al actualizar');
     }
 });
-
 
 // 10. Historial personal (ACTUALIZADO CON EGRESO)
 app.get('/api/asistencias/historial/:dni', async (req, res) => {
@@ -381,7 +354,7 @@ app.get('/api/asistencias/historial/:dni', async (req, res) => {
                     fecha_registro,
                     dia, 
                     horario_ingreso,
-                    horario_egreso
+                    horario_egreso, motivo
                 FROM Asistencias 
                 WHERE alumno_dni = @dni 
                 ORDER BY fecha_registro DESC

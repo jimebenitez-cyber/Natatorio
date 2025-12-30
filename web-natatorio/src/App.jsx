@@ -23,9 +23,25 @@ export default function App() {
 
     const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
+<<<<<<< HEAD
     // Estados
     const [esEdicionAlumno, setEsEdicionAlumno] = useState(false);
     const [esEdicionProfesor, setEsEdicionProfesor] = useState(false);
+=======
+  const [formAlumno, setFormAlumno] = useState({ id: null, dni: '', nombre: '', apellido: '', celular: '', gmail: '' });
+  const [formProfesor, setFormProfesor] = useState({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
+  
+  const [busquedaDni, setBusquedaDni] = useState('');
+  const [socioEncontrado, setSocioEncontrado] = useState(null);
+  const [asistenciaHoy, setAsistenciaHoy] = useState(null); // Nuevo estado: Guarda info si ya vino hoy
+  
+  const [motivoEgreso, setMotivoEgreso] = useState('');
+  // ESTADO TURNO: dia y horario
+  const [turno, setTurno] = useState({ dia: '', horario: '' });
+  
+  // ESTADO FECHA: Inicializamos con HOY (YYYY-MM-DD)
+  const [fechaIngreso, setFechaIngreso] = useState(new Date().toISOString().split('T')[0]);
+>>>>>>> 9170184d479a811eade4da8d2b837e4e7ad30619
 
     const [formAlumno, setFormAlumno] = useState({ id: null, dni: '', nombre: '', apellido: '', celular: '', gmail: '' });
     const [formProfesor, setFormProfesor] = useState({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
@@ -238,8 +254,203 @@ export default function App() {
                 if (!formAlumno.dni || !regexDni.test(formAlumno.dni)) { setMensaje('⚠️ DNI inválido.'); return; }
                 if (!formAlumno.nombre || !regexTexto.test(formAlumno.nombre)) { setMensaje('⚠️ Nombre inválido.'); return; }
                 if (!formAlumno.apellido || !regexTexto.test(formAlumno.apellido)) { setMensaje('⚠️ Apellido inválido.'); return; }
+<<<<<<< HEAD
             } else { setMensaje('⚠️ Alumno no encontrado.'); }
         } catch (e) { setMensaje('Error conexión'); }
+=======
+          } else { setMensaje('⚠️ Alumno no encontrado.'); }
+      } catch (e) { setMensaje('Error conexión'); }
+  };
+
+  const handleGuardarProfesor = async () => {
+    if (!formProfesor.dni || !regexDni.test(formProfesor.dni)) { setMensaje('⚠️ DNI inválido.'); return; }
+    if (!formProfesor.nombre || !regexTexto.test(formProfesor.nombre)) { setMensaje('⚠️ Nombre inválido.');  return; }
+    if (!formProfesor.apellido || !regexTexto.test(formProfesor.apellido)) { setMensaje('⚠️ Apellido inválido.');  return; }
+    
+    const esEdicion = !!formProfesor.id;
+    
+    try {
+      const url = esEdicion ? `http://localhost:5000/api/profesores/${formProfesor.id}` : 'http://localhost:5000/api/profesores';
+      const metodo = esEdicion ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formProfesor) });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setMensaje(esEdicion ? '¡Profesor actualizado!' : '¡Profesor registrado!');
+        
+        // Esperamos 1.5 seg antes de limpiar y salir
+        setTimeout(() => { 
+            setMensaje(''); 
+            
+            // Limpiamos el formulario (incluyendo horarios)
+            setFormProfesor({ id: null, nombre: '', apellido: '', dni: '', telefono: '', especialidad: '', horarios: [{ dia: '', horario: '' }] });
+            
+            // 👇 Redirigimos siempre al Main
+            setView('main'); 
+        }, 1500);
+
+      } else { 
+          setMensaje(data.message || 'Error al guardar.'); 
+          setTimeout(() => setMensaje(''), 3000); 
+      }
+    } catch (e) { 
+        setMensaje('Error conexión.'); 
+        setTimeout(() => setMensaje(''), 3000); 
+    }
+  };
+
+  const buscarProfesor = async () => {
+      if(!busquedaDni) return;
+      try {
+          const res = await fetch(`http://localhost:5000/api/profesores/${busquedaDni}`);
+          if(res.ok) {
+              const data = await res.json();
+              setFormProfesor({ ...data, horarios: data.horarios.length ? data.horarios : [{dia:'', horario:''}] });
+              setEsEdicionProfesor(true);
+              setView('formProfesor');
+              setBusquedaDni('');
+          } else { setMensaje('⚠️ Profesor no encontrado.'); setTimeout(() => setMensaje(''), 4000); }
+      } catch (e) { setMensaje('Error conexión'); setTimeout(() => setMensaje(''), 3000); }
+  };
+
+  // --- LÓGICA DE INGRESO / EGRESO MEJORADA ---
+  const buscarSocioIngreso = async () => {
+    if (!busquedaDni) return;
+    setTurno({ dia: '', horario: '' });
+    try {
+        // 1. Buscar Datos del Alumno
+        const rAlumno = await fetch(`http://localhost:5000/api/alumnos/${busquedaDni}`);
+        
+        if(rAlumno.ok) {
+            const dataAlumno = await rAlumno.json();
+            setSocioEncontrado(dataAlumno);
+            
+            // 2. Buscar si ya tiene asistencia hoy
+            const rEstado = await fetch(`http://localhost:5000/api/asistencias/estado-hoy/${dataAlumno.dni}`);
+            if (rEstado.ok) {
+                const dataEstado = await rEstado.json(); 
+                setAsistenciaHoy(dataEstado); // Guarda el estado (null, o objeto asistencia)
+                
+                if (dataEstado && !dataEstado.horario_egreso) {
+                    setMensaje('⚠️ El alumno ya está ingresado. Puedes registrar su egreso.');
+                } else if (dataEstado && dataEstado.horario_egreso) {
+                    setMensaje('ℹ️ El alumno ya completó su turno hoy.');
+                } else {
+                    setMensaje('¡Alumno verificado!');
+                }
+            }
+            setTimeout(() => setMensaje(''), 10000);
+        } else { 
+            setMensaje('DNI no encontrado.'); 
+            setSocioEncontrado(null); 
+            setAsistenciaHoy(null);
+           
+        }
+    } catch(e) { 
+        setMensaje('Error conexión'); 
+   
+    }
+  };
+
+  const registrarAsistencia = async () => {
+      if (enviando||!turno.dia || !turno.horario) return;
+        setEnviando(true);
+      
+      try {
+          const res = await fetch('http://localhost:5000/api/asistencias', {
+              method: 'POST', headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ 
+                  dni: socioEncontrado.dni, 
+                  dia: turno.dia, 
+                  horario: turno.horario,
+                  fecha: fechaIngreso
+              })
+          });
+          const data = await res.json();
+          if(res.ok) {
+              setMensaje(`✅ Ingreso registrado: ${socioEncontrado.nombre}`);
+              setTimeout(() => { 
+                  setMensaje(''); 
+                  setSocioEncontrado(null); 
+                  setBusquedaDni(''); 
+                  setAsistenciaHoy(null);
+                  setTurno({dia:'', horario:''}); 
+                  setFechaIngreso(new Date().toISOString().split('T')[0]); 
+                  setView('main'); 
+                  setEnviando(false); // 🔓 DESBLOQUEAMOS AL TERMINAR
+              }, 2000);
+          } else { 
+              setMensaje(data.message || 'Error al guardar.'); 
+              setEnviando(false); // 🔓 DESBLOQUEAR SI HUBO ERROR
+              setTimeout(() => setMensaje(''), 3000); 
+          }
+      } catch (error) { 
+          setMensaje('Error de conexión.'); 
+          setEnviando(false); // 🔓 DESBLOQUEAR SI HUBO ERROR
+          setTimeout(() => setMensaje(''), 4000); 
+      }
+  };
+
+  const registrarEgreso = async () => {
+    if (!asistenciaHoy || !asistenciaHoy.id) return;
+    
+    const ahora = new Date();
+    const horaActual = `${ahora.getHours().toString().padStart(2, '0')}:${ahora.getMinutes().toString().padStart(2, '0')}`;
+
+    try {
+        const res = await fetch(`http://localhost:5000/api/asistencias/egreso/${asistenciaHoy.id}`, {
+            method: 'PUT', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+                horario_egreso: horaActual,
+             motivo: motivoEgreso })
+        });
+        setMotivoEgreso(''); // limpiar campo después
+        if(res.ok) {
+            setMensaje(`👋 Salida registrada a las ${horaActual}`);
+            setTimeout(() => { 
+                setMensaje(''); 
+                setSocioEncontrado(null); 
+                setBusquedaDni(''); 
+                setAsistenciaHoy(null);
+                setTurno({dia:'', horario:''}); 
+                setView('main'); 
+            }, 2000);
+        } else {
+            setMensaje('Error al registrar egreso');
+        }
+    } catch (error) {
+        setMensaje('Error de conexión');
+    }
+  };
+
+//listado por dni
+  const verListado = async () => {
+      if(!filtroListado.fecha || !filtroListado.horario) return;
+      try {
+          const res = await fetch(`http://localhost:5000/api/asistencias/listado?fecha=${filtroListado.fecha}&horario=${filtroListado.horario}`);
+          console.log(res)
+          if(res.ok) { setListaAsistencia(await res.json()); setBusquedaRealizada(true); }
+      } catch (error) { setMensaje('Error al cargar lista'); }
+  };
+
+//listado por fecha
+    const verListadoPorFecha = async () => {
+    if (!filtroReporteFecha.fecha || !filtroReporteFecha.horario) return;
+
+    try {
+        const res = await fetch(`http://localhost:5000/api/asistencias/listado-por-fecha?fecha=${filtroReporteFecha.fecha}&horario=${filtroReporteFecha.horario}`);
+
+        if (res.ok) {
+        setListaAsistencia(await res.json());
+        setBusquedaRealizada(true);
+        }
+    } catch (error) {
+        setMensaje('Error al cargar lista');
+        setTimeout(() => setMensaje(''), 3000);
+    }
+>>>>>>> 9170184d479a811eade4da8d2b837e4e7ad30619
     };
 
     const handleGuardarProfesor = async () => {
@@ -580,8 +791,75 @@ export default function App() {
                             </button>
                         </div>
 
+<<<<<<< HEAD
                     </div>
                 )}
+=======
+        {view === 'buscarProfe' && (
+            <div>
+                <button onClick={() => setView('menuEditar')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
+                <h2>Editar Profesor</h2>
+                <label>Ingrese DNI del Profesor</label>
+                <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input value={busquedaDni} onChange={e=>setBusquedaDni(e.target.value)} placeholder="Ej: 12345678" style={{marginBottom:0}}/><button onClick={buscarProfesor} className="btn-primary" style={{marginTop:0, width:'auto'}}>Buscar</button></div>
+            </div>
+        )}
+
+        {view === 'ingreso' && (
+            <div>
+                <button onClick={() => setView('main')} className="btn-volver"><ArrowLeft size={20}/> Volver</button>
+                <h2>Control de Acceso</h2>
+                <label>Ingrese DNI del Alumno</label>
+                <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input value={busquedaDni} onChange={e=>setBusquedaDni(e.target.value)} placeholder="Ej: 33444555" style={{marginBottom:0}} onKeyDown={(e) => e.key === 'Enter' && buscarSocioIngreso()} /><button onClick={buscarSocioIngreso} className="btn-primary" style={{marginTop:0, width:'auto'}}>Buscar</button></div>
+                
+                {socioEncontrado && (
+                    <div style={{marginTop:'30px', padding:'30px', background:'rgba(16, 185, 129, 0.1)', borderRadius:'15px', border:'1px solid #059669'}}>
+                        <h3 style={{color:'#10b981', margin:0, fontSize:'1.5rem'}}>{socioEncontrado.nombre} {socioEncontrado.apellido}</h3>
+                        <p style={{color:'#34d399'}}>DNI: {socioEncontrado.dni}</p>
+                        
+                        {asistenciaHoy && !asistenciaHoy.horario_egreso ? (
+                            // CASO A: YA ESTÁ ADENTRO -> BOTÓN EGRESO
+                            <div style={{textAlign:'center', marginTop:'20px'}}>
+                                <p style={{fontSize:'1.2rem', fontWeight:'bold', color:'white'}}>🏊 Alumno actualmente en el natatorio</p>
+                                <p>Ingresó a las: {asistenciaHoy.horario_ingreso} hs</p>
+                                <button onClick={registrarEgreso} className="btn-primary" style={{background:'#eab308', color:'black', fontWeight:'bold', marginTop:'20px'}}>
+                                    👋 Registrar Egreso
+                                </button>
+                                <input type="text" placeholder="Motivo del egreso (opcional)" value={motivoEgreso} onChange={(e) => setMotivoEgreso(e.target.value)}style={{ marginTop: '8px', width: '100%' }}/>
+                            </div>
+                        ) : asistenciaHoy && asistenciaHoy.horario_egreso ? (
+                            // CASO B: YA SE FUE
+                            <div style={{textAlign:'center', marginTop:'20px'}}>
+                                <p style={{color:'#ef4444', fontWeight:'bold'}}>Este alumno ya completó su turno hoy.</p>
+                                <p>Ingreso: {asistenciaHoy.horario_ingreso} - Egreso: {asistenciaHoy.horario_egreso}</p>
+                                 
+                            </div>
+                        ) : (
+                            // CASO C: NO VINO -> MOSTRAR INGRESO
+                            <>
+                               <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}>
+            Fecha de Asistencia (Hoy):
+        </label>
+        
+        {/* 👇 ESTE ES EL INPUT QUE CAMBIAMOS 👇 */}
+        <input 
+            type="date" 
+            value={fechaIngreso} 
+            disabled={true} 
+            style={{
+                width: '100%', 
+                padding: '10px', 
+                borderRadius: '8px', 
+                border: '1px solid #059669', 
+                background: 'rgba(0,0,0,0.2)', // Fondo oscurecido
+                color: 'white', 
+                opacity: 0.8,
+                cursor: 'not-allowed' // Icono de prohibido
+            }}
+        />
+
+        <label style={{display:'block', marginTop:'20px', fontWeight:'bold', color:'#34d399'}}> Turno:</label> <div style={{display:'flex', gap:'15px'}}>
+                                    <input value={turno.dia || 'Seleccione fecha...'} disabled style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #059669', background:'rgba(0,0,0,0.2)', color:'white', opacity: 0.8}} />
+>>>>>>> 9170184d479a811eade4da8d2b837e4e7ad30619
 
 
                 {view === 'menuReportes' && (
